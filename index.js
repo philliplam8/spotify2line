@@ -117,7 +117,7 @@ const textEventHandler = async (event) => {
     // Create a new message.
     const response = {
         type: 'text',
-        text,
+        text: text,
     };
     // Reply to the user.
     await client.replyMessage(replyToken, response);
