@@ -76,9 +76,10 @@ app.get('/playlist', function (req, res) {
             request.get(playlistOptions, function (error, response, body) {
 
                 // Parse through response
-                var trackTitle = body.tracks.items[0].track.name;
-                var artist = body.tracks.items[0].track.artists[0].name;
-                var addedBy = body.tracks.items[0].added_by.id;
+                const lastItemIndex = body.tracks.items.length - 1;
+                var trackTitle = body.tracks.items[lastItemIndex].track.name;
+                var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
+                var addedBy = body.tracks.items[lastItemIndex].added_by.id;
                 var total = body.tracks.total;
 
                 // Pretty print results
@@ -92,8 +93,6 @@ app.get('/playlist', function (req, res) {
         }
     });
 });
-
-
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -199,7 +198,7 @@ app.get('/broadcast', async (_, res) => {
                     var userName = body.display_name;
 
                     // Compose message
-                    var data = "A new song has been added to the playlist! \n\n" + userName + " has added the song '" + trackTitle + "' by " + artist + ".\n\n There are now " + total + " songs in the playlist.";
+                    var data = `A new song has been added to the playlist! \n\n${userName} has added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
                     // Send message
                     broadcastEventHandler(data);
@@ -240,6 +239,7 @@ app.post('/webhook', bot_sdk_1.middleware(middlewareConfig), async (req, res) =>
         results,
     });
 });
+
 // Create a server and listen to it.
 app.listen(PORT, () => {
     console.log(`Application is live and listening on port ${PORT}`);
