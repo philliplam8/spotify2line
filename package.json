@@ -1,9 +1,10 @@
 {
   "name": "spotify2line",
   "version": "1.0.0",
-  "description": "",
+  "description": "A LINE bot with Javascript to broadcast Spotify Playlist updates",
   "main": "index.js",
   "dependencies": {
+    "@line/bot-sdk": "^7.4.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
