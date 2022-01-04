@@ -111,14 +111,17 @@ const textEventHandler = async (event) => {
     if (event.type !== 'message' || event.message.type !== 'text') {
         return;
     }
+
     // Process all message related variables here.
     const { replyToken } = event;
     const { text } = event.message;
+
     // Create a new message.
     const response = {
         type: 'text',
         text,
     };
+
     // Reply to the user.
     await client.replyMessage(replyToken, response);
 };
@@ -133,31 +136,6 @@ const broadcastEventHandler = async (broadcastMessage) => {
         type: 'text',
         text: broadcastMessage,//'Broadcast message test -PL',
     };
-
-
-    // Broadcast with API call
-    var broadcastOptions = {
-        url: 'https://api.line.me/v2/bot/message/broadcast',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + process.env.CHANNEL_ACCESS_TOKEN
-        },
-        data: {
-            "messages": {
-                "type": "text",
-                "text": "Hello, world1"
-            }
-        }
-
-    }
-
-    // request.post(broadcastOptions, function (error, response, body) {
-    //     return response.status(200).json({
-    //         status: 'success',
-    //         message: 'Connected successfully!',
-    //     });;
-    // });
-
 
     // Broadcast with SDK client function
     return client.broadcast(messages);
