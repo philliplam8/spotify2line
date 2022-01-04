@@ -134,9 +134,33 @@ const broadcastEventHandler = async (broadcastMessage) => {
         text: broadcastMessage,//'Broadcast message test -PL',
     };
 
-    // Broadcast
-    return client.broadcast(messages);
 
+    // Broadcast with API call
+    var broadcastOptions = {
+        url: 'https://api.line.me/v2/bot/message/broadcast',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + process.env.CHANNEL_ACCESS_TOKEN
+        },
+        data: {
+            "messages": {
+                "type": "text",
+                "text": "Hello, world1"
+            }
+        }
+
+    }
+
+    // request.post(broadcastOptions, function (error, response, body) {
+    //     return response.status(200).json({
+    //         status: 'success',
+    //         message: 'Connected successfully!',
+    //     });;
+    // });
+
+
+    // Broadcast with SDK client function
+    return client.broadcast(messages);
 };
 
 // PHILLIP TEST--------------------------------------------------
