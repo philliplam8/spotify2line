@@ -8,7 +8,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bot_sdk_1 = require("@line/bot-sdk");
 const express_1 = __importDefault(require("express"));
 var request = require('request'); // "Request" library
-const https = require('http');
+const fs = require('fs'); // fs Module to read/write JSON files
 require('dotenv').config()  // pre-loaded instead using '$ node -r dotenv/config app.js'
 
 // Setup all LINE client and Express configurations.
@@ -32,6 +32,7 @@ SPOTIFY SECTION
 var express = require('express'); // Express web server framework
 var cors = require('cors');
 var cookieParser = require('cookie-parser');
+const res = require("express/lib/response");
 var client_id = process.env.SPOTIFY_CLIENT_ID; // Your client id
 var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 
@@ -197,7 +198,7 @@ app.get('/broadcast', async (_, res) => {
                     // Parse through response
                     var userName = body.display_name;
 
-                    // Compose message
+                    // Compose message with Template Literals (Template Strings)
                     var data = `A new song has been added to the playlist! \n\n${userName} has added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
                     // Send message
@@ -240,7 +241,48 @@ app.post('/webhook', bot_sdk_1.middleware(middlewareConfig), async (req, res) =>
     });
 });
 
+// Get previous value of Total stored
+let rawdata = fs.readFileSync('total.json');
+let databaseValue = JSON.parse(rawdata);
+// console.log(databaseValue.total);
+
+// This route will check for changes in the playlist and run /broadcast if there are changes
+app.get('/ping', async (_, res) => {
+
+    request.post(authOptions, function (error, response, body) {
+        if (!error && response.statusCode === 200) {
+
+            // use the access token to access the Spotify Web API
+            var token = body.access_token;
+
+            var playlistOptions = {
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB, //PLAYLIST_ID_TEST,
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+
+            request.get(playlistOptions, function (error, response, body) {
+                // Parse through response
+                var total = body.tracks.total;
+                if (databaseValue.value != total) {
+
+                    // Update database value to current value
+                    databaseValue.total = total;
+                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+
+                    res.redirect('/broadcast');
+                }
+            });
+        };
+    });
+
+
+});
+
 // Create a server and listen to it.
 app.listen(PORT, () => {
+
     console.log(`Application is live and listening on port ${PORT}`);
 });
