@@ -167,7 +167,7 @@ app.get('/broadcast', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB, //PLAYLIST_ID_TEST,
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST, //PLAYLIST_ID_TEST,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -256,7 +256,7 @@ app.get('/ping', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB, //PLAYLIST_ID_TEST,
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST, //PLAYLIST_ID_TEST,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -266,8 +266,11 @@ app.get('/ping', async (_, res) => {
             request.get(playlistOptions, function (error, response, body) {
                 // Parse through response
                 var total = body.tracks.total;
-                if (databaseValue.value != total) {
 
+                // Check if Spotify API total value is different from previously saved total value
+                // console.log(databaseValue['total'], total);
+                if (databaseValue['total'] != total) {
+                    
                     // Update database value to current value
                     databaseValue.total = total;
                     fs.writeFileSync('total.json', JSON.stringify(databaseValue));
