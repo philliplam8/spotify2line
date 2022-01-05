@@ -167,7 +167,7 @@ app.get('/broadcast', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST, //PLAYLIST_ID_TEST,
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB, //PLAYLIST_ID_TEST,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -256,7 +256,7 @@ app.get('/ping', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST, //PLAYLIST_ID_TEST,
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB, //PLAYLIST_ID_TEST,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
