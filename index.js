@@ -270,17 +270,22 @@ app.get('/ping', async (_, res) => {
                 // Check if Spotify API total value is different from previously saved total value
                 // console.log(databaseValue['total'], total);
                 if (databaseValue['total'] != total) {
-                    
+
                     // Update database value to current value
                     databaseValue.total = total;
                     fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
                     res.redirect('/broadcast');
                 }
+
+                // Return a successfull message.
+                return res.status(200).json({
+                    status: 'success',
+                    message: 'Connected successfully!',
+                });
             });
         };
     });
-
 
 });
 
