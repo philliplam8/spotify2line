@@ -125,7 +125,7 @@ const textEventHandler = async (event) => {
     // Reply to the user.
     await client.replyMessage(replyToken, response);
 };
-// PHILLIP TEST--------------------------------------------------
+
 // PHILLIP TEST: This route is used to broadcast a message
 // Function handler to broadcast message.
 const broadcastEventHandler = async (broadcastMessage) => {
