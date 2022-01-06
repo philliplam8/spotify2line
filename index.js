@@ -264,25 +264,32 @@ app.get('/ping', async (_, res) => {
             };
 
             request.get(playlistOptions, function (error, response, body) {
-                // Parse through response
-                var total = body.tracks.total;
+                if (!error && response.statusCode === 200) {
 
-                // Check if Spotify API total value is different from previously saved total value
-                // console.log(databaseValue['total'], total);
-                if (databaseValue['total'] != total) {
+                    // Parse through response
+                    var total = body.tracks.total;
 
-                    // Update database value to current value
-                    databaseValue.total = total;
-                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+                    // Check if Spotify API total value is different from previously saved total value
+                    // console.log(databaseValue['total'], total);
+                    if (databaseValue['total'] != total) {
 
-                    res.redirect('/broadcast');
+                        // Update database value to current value
+                        databaseValue.total = total;
+                        fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+
+                        res.redirect('/broadcast');
+                    }
+
+                    // Return a successfull message.
+                    return res.send(200).json({
+                        status: 'success',
+                        message: 'Connected successfully!',
+                    });
                 }
 
-                // Return a successfull message.
-                return res.send(200).json({
-                    status: 'success',
-                    message: 'Connected successfully!',
-                });
+                else {
+                    res.send(err.toString());
+                }
             });
         };
     });
