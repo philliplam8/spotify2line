@@ -91,13 +91,12 @@ const textEventHandler = async (event) => {
 
 // PHILLIP TEST: This route is used to broadcast a message
 // Function handler to broadcast message.
-const broadcastEventHandler = async (broadcastMessage) => {
-
+const broadcastEventHandler = (broadcastMessage) => {
 
     // Create a new message.
     const messages = {
         type: 'text',
-        text: broadcastMessage,//'Broadcast message test -PL',
+        text: broadcastMessage, // LINE message to be sent to chat
     };
 
     // Broadcast with SDK client function
