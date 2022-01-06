@@ -157,6 +157,10 @@ app.get('/broadcast', async (_, res) => {
 
                 request.get(userIdOptions, function (error, response, body) {
 
+                    // Update database value to current value
+                    databaseValue.total = total;
+                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+
                     // Parse through response
                     var userName = body.display_name;
 
@@ -235,18 +239,11 @@ app.get('/ping', async (_, res) => {
                     // console.log(databaseValue['total'], total);
                     if (databaseValue['total'] != total) {
 
-                        // Update database value to current value
-                        databaseValue.total = total;
-                        fs.writeFileSync('total.json', JSON.stringify(databaseValue));
-
                         res.redirect('/broadcast');
                     }
 
-                    // Return a successfull message.
-                    return res.status(200).json({
-                        status: 'success',
-                        message: 'Connected successfully!',
-                    });
+                    res.end();
+                    // res.redirect('/broadcast');
                 }
             });
         };
