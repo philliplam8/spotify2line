@@ -129,7 +129,7 @@ app.get('/broadcast', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST, //PLAYLIST_ID_COLLAB,
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -222,7 +222,7 @@ app.get('/ping', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST, //PLAYLIST_ID_COLLAB, 
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB,  
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -238,7 +238,6 @@ app.get('/ping', async (_, res) => {
                     // Check if Spotify API total value is different from previously saved total value
                     // console.log(databaseValue['total'], total);
                     if (databaseValue['total'] != total) {
-
                         res.redirect('/broadcast');
                     }
 
