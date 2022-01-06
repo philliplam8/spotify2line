@@ -58,43 +58,6 @@ app.use(express.static(__dirname + '/public'))
     .use(cors())
     .use(cookieParser());
 
-app.get('/playlist', function (req, res) {
-
-    request.post(authOptions, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
-
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-
-            var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_TEST,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            request.get(playlistOptions, function (error, response, body) {
-
-                // Parse through response
-                const lastItemIndex = body.tracks.items.length - 1;
-                var trackTitle = body.tracks.items[lastItemIndex].track.name;
-                var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
-                var addedBy = body.tracks.items[lastItemIndex].added_by.id;
-                var total = body.tracks.total;
-
-                // Pretty print results
-                return res.send({
-                    Title: trackTitle,
-                    Artist: artist,
-                    AddedByPerson: addedBy,
-                    TrackTotal: total,
-                });
-            });
-        }
-    });
-});
-
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 LINE SECTION 
@@ -281,7 +244,7 @@ app.get('/ping', async (_, res) => {
                     }
 
                     // Return a successfull message.
-                    return res.send(200).json({
+                    return res.status(200).json({
                         status: 'success',
                         message: 'Connected successfully!',
                     });
