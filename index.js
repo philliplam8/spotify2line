@@ -249,10 +249,6 @@ app.get('/ping', async (_, res) => {
                         message: 'Connected successfully!',
                     });
                 }
-
-                else {
-                    res.send(err.toString());
-                }
             });
         };
     });
