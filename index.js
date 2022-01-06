@@ -263,7 +263,7 @@ app.get('/ping', async (_, res) => {
                 json: true
             };
 
-            request.get(playlistOptions, function (error, response, body) {
+            request.get(playlistOptions, async function (error, response, body) {
                 // Parse through response
                 var total = body.tracks.total;
 
@@ -291,6 +291,5 @@ app.get('/ping', async (_, res) => {
 
 // Create a server and listen to it.
 app.listen(PORT, () => {
-
     console.log(`Application is live and listening on port ${PORT}`);
 });
