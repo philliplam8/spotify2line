@@ -263,7 +263,7 @@ app.get('/ping', async (_, res) => {
                 json: true
             };
 
-            request.get(playlistOptions, async function (error, response, body) {
+            request.get(playlistOptions, function (error, response, body) {
                 // Parse through response
                 var total = body.tracks.total;
 
@@ -279,7 +279,7 @@ app.get('/ping', async (_, res) => {
                 }
 
                 // Return a successfull message.
-                return res.status(200).json({
+                return res.end(200).json({
                     status: 'success',
                     message: 'Connected successfully!',
                 });
