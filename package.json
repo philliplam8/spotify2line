@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "A LINE bot with Javascript to broadcast Spotify Playlist updates",
   "main": "index.js",
+  "engines": {
+    "node": "14.17.1",
+    "npm": "6.14.13"
+  },
   "dependencies": {
     "@line/bot-sdk": "^7.4.0",
     "cookie-parser": "^1.4.6",
