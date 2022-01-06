@@ -279,7 +279,7 @@ app.get('/ping', async (_, res) => {
                 }
 
                 // Return a successfull message.
-                return res.end(200).json({
+                return res.send(200).json({
                     status: 'success',
                     message: 'Connected successfully!',
                 });
