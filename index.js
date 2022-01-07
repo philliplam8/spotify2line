@@ -51,7 +51,7 @@ var authOptions = {
 // Populate collab playlist data
 const PLAYLIST_ID_COLLAB = '2akbzrAFt9L9BCjhaQGyUc';
 const PLAYLIST_ID_TEST = '53kbHaKSd8NMsutfybeRSz';
-const PLAYLIST = PLAYLIST_ID_TEST;
+const PLAYLIST = PLAYLIST_ID_COLLAB;
 
 var app = express();
 
