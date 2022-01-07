@@ -51,6 +51,7 @@ var authOptions = {
 // Populate collab playlist data
 const PLAYLIST_ID_COLLAB = '2akbzrAFt9L9BCjhaQGyUc';
 const PLAYLIST_ID_TEST = '53kbHaKSd8NMsutfybeRSz';
+const PLAYLIST = PLAYLIST_ID_TEST;
 
 var app = express();
 
@@ -89,20 +90,6 @@ const textEventHandler = async (event) => {
     await client.replyMessage(replyToken, response);
 };
 
-// PHILLIP TEST: This route is used to broadcast a message
-// Function handler to broadcast message.
-const broadcastEventHandler = (broadcastMessage) => {
-
-    // Create a new message.
-    const messages = {
-        type: 'text',
-        text: broadcastMessage, // LINE message to be sent to chat
-    };
-
-    // Broadcast with SDK client function
-    return client.broadcast(messages);
-};
-
 // PHILLIP TEST--------------------------------------------------
 // Register the LINE middleware.
 // As an alternative, you could also pass the middleware in the route handler, which is what is used here.
@@ -129,7 +116,7 @@ app.get('/broadcast', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB,
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -144,7 +131,9 @@ app.get('/broadcast', async (_, res) => {
                 var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
                 var userId = body.tracks.items[lastItemIndex].added_by.id;
                 var total = body.tracks.total;
-
+                // var shareLink = body.tracks.items[lastItemIndex].track.album.external_urls.spotify;
+                var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
+                var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
 
                 // Determine userName from userId:
                 var userIdOptions = {
@@ -167,8 +156,35 @@ app.get('/broadcast', async (_, res) => {
                     // Compose message with Template Literals (Template Strings)
                     var data = `A new song has been added to the playlist! \n\n${userName} has added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
-                    // Send message
-                    broadcastEventHandler(data);
+                    // Create a new message.
+                    const textMessage = {
+                        type: 'text',
+                        text: data,
+                    };
+
+                    // Create a new image message.
+                    const imageMessage = {
+                        type: 'image',
+                        originalContentUrl: testMImageURL,
+                        previewImageUrl: testSImageURL
+                    };
+
+                    // Create a new image message.
+                    // const imageMapMessage = {
+                    //     type: 'message',
+                    //     label: 'https://open.spotify.com/track/04479xELLnZLEZxoy0iWFL?si=3a4f0d2f53414a05',
+                    //     text: 'https://open.spotify.com/track/04479xELLnZLEZxoy0iWFL?si=3a4f0d2f53414a05',
+                    //     area: {
+                    //         x: 0,
+                    //         y: 0,
+                    //         width: 520,
+                    //         height: 1040
+                    //     }
+                    // }
+
+                    // Broadcast with SDK client function
+                    return client.broadcast([textMessage, imageMessage]);
+                    // return client.broadcast(imageMapMessage);
                 });
             });
         }
@@ -222,7 +238,7 @@ app.get('/ping', async (_, res) => {
             var token = body.access_token;
 
             var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST_ID_COLLAB,  
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -242,13 +258,64 @@ app.get('/ping', async (_, res) => {
                     }
 
                     res.end();
-                    // res.redirect('/broadcast');
                 }
             });
         };
     });
-
 });
+
+
+app.get('/playlist', async (_, res) => {
+    // PHILLIP TEST--------------------------------------------------
+    // SPOTIFY ----------------------------------------------------------
+    request.post(authOptions, function (error, response, body) {
+        if (!error && response.statusCode === 200) {
+
+            // use the access token to access the Spotify Web API
+            var token = body.access_token;
+
+            var playlistOptions = {
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+
+            request.get(playlistOptions, function (error, response, body) {
+
+                // Parse through response
+                const lastItemIndex = body.tracks.items.length - 1;
+                var trackTitle = body.tracks.items[lastItemIndex].track.name;
+                var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
+                var userId = body.tracks.items[lastItemIndex].added_by.id;
+                var total = body.tracks.total;
+
+                var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
+                var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
+                var data = `A new song has been added to the playlist! \n\n"${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+
+                // Create text message.
+                const textMessage = {
+                    type: 'text',
+                    text: data
+                };
+
+                // Create a new image message.
+                const imageMessage = {
+                    type: 'image',
+                    originalContentUrl: testMImageURL,
+                    previewImageUrl: testSImageURL
+                };
+
+                client.broadcast([textMessage, imageMessage]);
+                res.end();
+            });
+        }
+    });
+});
+
+app.get('/check')
 
 // Create a server and listen to it.
 app.listen(PORT, () => {
