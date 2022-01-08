@@ -51,7 +51,7 @@ var authOptions = {
 // Populate collab playlist data
 const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
 const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = TEST_PLAYLIST;
+const PLAYLIST = COLLAB_PLAYLIST;
 
 var app = express();
 
@@ -135,6 +135,8 @@ app.get('/broadcast', async (_, res) => {
                 // var shareLink = body.tracks.items[lastItemIndex].track.album.external_urls.spotify;
                 var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
                 var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
+                const ALBUM_LINK = body.external_urls.spotify;
+                const SONG_LINK = body.tracks.items[lastItemIndex].track.external_urls.spotify;
 
                 // Determine userName from userId:
                 var userIdOptions = {
@@ -175,20 +177,109 @@ app.get('/broadcast', async (_, res) => {
                     };
 
                     // Create a new image message.
-                    // const imageMapMessage = {
-                    //     type: 'message',
-                    //     label: 'https://open.spotify.com/track/04479xELLnZLEZxoy0iWFL?si=3a4f0d2f53414a05',
-                    //     text: 'https://open.spotify.com/track/04479xELLnZLEZxoy0iWFL?si=3a4f0d2f53414a05',
-                    //     area: {
-                    //         x: 0,
-                    //         y: 0,
-                    //         width: 520,
-                    //         height: 1040
-                    //     }
-                    // }
+                    const imageMapMessage = {
+                        type: 'imagemap',
+                        baseUrl: `https://developers.line.biz/en/reference/messaging-api/#imagemap-message`,
+                        altText: 'Imagemap alt text',
+                        baseSize: { width: 1040, height: 1040 },
+                        actions: [
+                            { area: { x: 0, y: 0, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/manga/en' },
+                            { area: { x: 520, y: 0, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/music/en' },
+                            { area: { x: 0, y: 520, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/play/en' },
+                            { area: { x: 520, y: 520, width: 520, height: 520 }, type: 'message', text: 'URANAI!' },
+                        ],
+                        video: {
+                            originalContentUrl: testMImageURL,
+                            previewImageUrl: testMImageURL,
+                            area: {
+                                x: 280,
+                                y: 385,
+                                width: 480,
+                                height: 270,
+                            },
+                            externalLink: {
+                                linkUri: 'https://line.me',
+                                label: 'LINE'
+                            }
+                        },
+                    }
+
+                    // Create a quick reply button NOTE ONLY WORKS ON MOBILE
+                    const quickReplyButton = {
+                        type: 'image',
+                        originalContentUrl: testMImageURL,
+                        previewImageUrl: testSImageURL,
+                        quickReply: {
+                            items: [
+                                {
+                                    type: "action",
+                                    action: {
+                                        type: "uri",
+                                        label: "Check out song! 🎵",
+                                        uri: SONG_LINK
+                                    },
+                                    imageUrl: testSImageURL
+                                },
+                                {
+                                    type: "action",
+                                    action: {
+                                        type: "uri",
+                                        label: "Open Playlist 👁👄👁",
+                                        uri: ALBUM_LINK
+                                    },
+                                    imageUrl: "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png"
+                                }
+                            ]
+                        }
+                    }
+
+                    // Create a sample carousel (Also only works on mobile)
+                    const carouselMessage = {
+                        type: 'template',
+                        altText: 'Carousel alt text',
+                        template: {
+                            type: 'carousel',
+                            columns: [
+                                {
+                                    thumbnailImageUrl: "https://developers.line.biz/media/common/logo-white.png",
+                                    title: 'hoge',
+                                    text: 'fuga',
+                                    actions: [
+                                        { label: 'Go to line.me', type: 'uri', uri: 'https://line.me' },
+                                        { label: 'Say hello1', type: 'postback', data: 'hello こんにちは' },
+                                    ],
+                                },
+                                {
+                                    thumbnailImageUrl: "https://developers.line.biz/media/common/logo-white.png",
+                                    title: 'hoge',
+                                    text: 'fuga',
+                                    actions: [
+                                        { label: '言 hello2', type: 'postback', data: 'hello こんにちは', text: 'hello こんにちは' },
+                                        { label: 'Say message', type: 'message', text: 'Rice=米' },
+                                    ],
+                                },
+                            ],
+                        },
+                    }
+
+                    // Create a sample button template message
+                    const buttonTemplateMessage = {
+                        type: 'template',
+                        altText: 'Datetime pickers alt text',
+                        template: {
+                            thumbnailImageUrl: "https://developers.line.biz/media/common/logo-white.png",
+                            type: 'buttons',
+                            text: 'Select date / time !',
+                            actions: [
+                                { type: 'datetimepicker', label: 'date', data: 'DATE', mode: 'date' },
+                                { type: 'datetimepicker', label: 'time', data: 'TIME', mode: 'time' },
+                                { type: 'datetimepicker', label: 'datetime', data: 'DATETIME', mode: 'datetime' },
+                            ],
+                        },
+                    }
 
                     // Broadcast with SDK client function
-                    return client.broadcast([textMessage, imageMessage]);
+                    return client.broadcast([textMessage, quickReplyButton]);
                     // return client.broadcast(imageMapMessage);
                 });
             });
