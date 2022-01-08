@@ -105,6 +105,14 @@ app.get('/', async (_, res) => {
     // });
 });
 
+function shortenArtistName(name) {
+    if (name.length <= 20) {
+        return name;
+    } else {
+        return name.substring(0, 17) + "...";
+    }
+}
+
 // TODO fix the callback hell below
 // Route handler to broadcast a message.
 app.get('/broadcast', async (_, res) => {
@@ -130,6 +138,7 @@ app.get('/broadcast', async (_, res) => {
                 const lastItemIndex = body.tracks.items.length - 1;
                 var trackTitle = body.tracks.items[lastItemIndex].track.name;
                 var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
+                var artistSubstring = shortenArtistName(artist);
                 var userId = body.tracks.items[lastItemIndex].added_by.id;
                 var total = body.tracks.total;
                 // var shareLink = body.tracks.items[lastItemIndex].track.album.external_urls.spotify;
@@ -137,6 +146,7 @@ app.get('/broadcast', async (_, res) => {
                 var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
                 const ALBUM_LINK = body.external_urls.spotify;
                 const SONG_LINK = body.tracks.items[lastItemIndex].track.external_urls.spotify;
+                const ARTIST_LINK = body.tracks.items[lastItemIndex].track.artists[0].external_urls.spotify;
 
                 // Determine userName from userId:
                 var userIdOptions = {
@@ -161,12 +171,17 @@ app.get('/broadcast', async (_, res) => {
                     var userName = body.display_name;
 
                     // Compose message with Template Literals (Template Strings)
-                    var data = `A new song has been added to the playlist! \n\n${userName} has added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+                    var data = `${userName} has added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
                     // Create a new message.
                     const textMessage = {
                         type: 'text',
                         text: data,
+                        // Sender will appear in the notification push and in the convo
+                        // sender: {
+                        //     name: "Cony",
+                        //     iconUrl: "https://line.me/conyprof"
+                        // }
                     };
 
                     // Create a new image message.
@@ -205,6 +220,7 @@ app.get('/broadcast', async (_, res) => {
                     }
 
                     // Create a quick reply button NOTE ONLY WORKS ON MOBILE
+                    // Note Label only allows max 20 char
                     const quickReplyButton = {
                         type: 'image',
                         originalContentUrl: testMImageURL,
@@ -226,6 +242,15 @@ app.get('/broadcast', async (_, res) => {
                                         type: "uri",
                                         label: "Open Playlist 👁👄👁",
                                         uri: ALBUM_LINK
+                                    },
+                                    imageUrl: "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png"
+                                },
+                                {
+                                    type: "action",
+                                    action: {
+                                        type: "uri",
+                                        label: artistSubstring,
+                                        uri: ARTIST_LINK
                                     },
                                     imageUrl: "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png"
                                 }
