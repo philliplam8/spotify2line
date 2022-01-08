@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 // Import all dependencies, mostly using destructuring for better view.
 const bot_sdk_1 = require("@line/bot-sdk");
-const express_1 = __importDefault(require("express"));
 var request = require('request'); // "Request" library
 const fs = require('fs'); // fs Module to read/write JSON files
 require('dotenv').config()  // pre-loaded instead using '$ node -r dotenv/config app.js'
@@ -68,8 +67,7 @@ LINE SECTION
 
 // Create a new LINE SDK client.
 const client = new bot_sdk_1.Client(clientConfig);
-// Create a new Express application.
-// const app = express_1.default();
+
 // Function handler to receive the text.
 const textEventHandler = async (event) => {
     // Process all variables here.
@@ -230,11 +228,6 @@ app.post('/webhook', bot_sdk_1.middleware(middlewareConfig), async (req, res) =>
     });
 });
 
-// Get previous value of Total stored
-let rawdata = fs.readFileSync('total.json');
-let databaseValue = JSON.parse(rawdata);
-// console.log(databaseValue.total);
-
 // This route will check for changes in the playlist and run /broadcast if there are changes
 app.get('/ping', async (_, res) => {
 
@@ -274,57 +267,6 @@ app.get('/ping', async (_, res) => {
                 }
             });
         };
-    });
-});
-
-
-app.get('/playlist', async (_, res) => {
-    // PHILLIP TEST--------------------------------------------------
-    // SPOTIFY ----------------------------------------------------------
-    request.post(authOptions, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
-
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-
-            var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            request.get(playlistOptions, function (error, response, body) {
-
-                // Parse through response
-                const lastItemIndex = body.tracks.items.length - 1;
-                var trackTitle = body.tracks.items[lastItemIndex].track.name;
-                var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
-                var userId = body.tracks.items[lastItemIndex].added_by.id;
-                var total = body.tracks.total;
-
-                var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
-                var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
-                var data = `A new song has been added to the playlist! \n\n"${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
-
-                // Create text message.
-                const textMessage = {
-                    type: 'text',
-                    text: data
-                };
-
-                // Create a new image message.
-                const imageMessage = {
-                    type: 'image',
-                    originalContentUrl: testMImageURL,
-                    previewImageUrl: testSImageURL
-                };
-
-                client.broadcast([textMessage, imageMessage]);
-                res.end();
-            });
-        }
     });
 });
 
