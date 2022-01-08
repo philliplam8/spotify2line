@@ -51,7 +51,7 @@ var authOptions = {
 // Populate collab playlist data
 const PLAYLIST_ID_COLLAB = '2akbzrAFt9L9BCjhaQGyUc';
 const PLAYLIST_ID_TEST = '53kbHaKSd8NMsutfybeRSz';
-const PLAYLIST = PLAYLIST_ID_COLLAB;
+const PLAYLIST = PLAYLIST_ID_TEST;
 
 var app = express();
 
@@ -145,6 +145,10 @@ app.get('/broadcast', async (_, res) => {
                 };
 
                 request.get(userIdOptions, function (error, response, body) {
+
+                    // Get previous value of Total stored
+                    let rawdata = fs.readFileSync('total.json');
+                    let databaseValue = JSON.parse(rawdata);
 
                     // Update database value to current value
                     databaseValue.total = total;
@@ -252,8 +256,14 @@ app.get('/ping', async (_, res) => {
                     var total = body.tracks.total;
 
                     // Check if Spotify API total value is different from previously saved total value
+                    // Get previous value of Total stored
+                    let rawdata = fs.readFileSync('total.json');
+                    let databaseValue = JSON.parse(rawdata);
+
+
                     // console.log(databaseValue['total'], total);
                     if (databaseValue['total'] != total) {
+                        console.log(databaseValue['total'], total);
                         res.redirect('/broadcast');
                     }
 
@@ -315,7 +325,54 @@ app.get('/playlist', async (_, res) => {
     });
 });
 
-app.get('/check')
+app.get('/check-local-data', async (_, res) => {
+
+    let data = fs.readFileSync('total.json');
+    let databaseTotal = JSON.parse(data);
+
+    var JSON_TOTAL = databaseTotal['total'];
+    console.log(JSON_TOTAL);
+
+    res.send(databaseTotal);
+    res.end();
+});
+
+app.get('/manual-update-local-data', async (_, res) => {
+
+    let data = fs.readFileSync('total.json');
+    let databaseValue = JSON.parse(data);
+
+    request.post(authOptions, function (error, response, body) {
+        if (!error && response.statusCode === 200) {
+
+            // use the access token to access the Spotify Web API
+            var token = body.access_token;
+
+            var playlistOptions = {
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+
+            request.get(playlistOptions, function (error, response, body) {
+                if (!error && response.statusCode === 200) {
+
+                    // Parse through response
+                    var total = body.tracks.total;
+
+                    // Update database value to current value
+                    databaseValue.total = total;
+                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+
+                    res.send(databaseValue);
+                    res.end();
+                }
+            });
+        };
+    });
+});
 
 // Create a server and listen to it.
 app.listen(PORT, () => {
