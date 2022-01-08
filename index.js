@@ -50,9 +50,9 @@ var authOptions = {
 };
 
 // Populate collab playlist data
-const PLAYLIST_ID_COLLAB = '2akbzrAFt9L9BCjhaQGyUc';
-const PLAYLIST_ID_TEST = '53kbHaKSd8NMsutfybeRSz';
-const PLAYLIST = PLAYLIST_ID_COLLAB;
+const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
+const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
+const PLAYLIST = TEST_PLAYLIST;
 
 var app = express();
 
