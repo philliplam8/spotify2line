@@ -27,6 +27,7 @@ const PORT = process.env.PORT || 3000;
 SPOTIFY SECTION
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
 // SPOTIFY VARIABLES ----------------------------------------------------------
 var express = require('express'); // Express web server framework
 var cors = require('cors');
@@ -36,6 +37,11 @@ const { redirect } = require("express/lib/response");
 var client_id = process.env.SPOTIFY_CLIENT_ID; // Your client id
 var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 const SPOTIFY_LOGO_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
+
+// Playlist Data
+const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
+const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
+const PLAYLIST = COLLAB_PLAYLIST;
 
 // your application requests authorization
 var authOptions = {
@@ -48,11 +54,6 @@ var authOptions = {
     },
     json: true
 };
-
-// Populate collab playlist data
-const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
-const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = COLLAB_PLAYLIST;
 
 var app = express();
 
@@ -69,7 +70,7 @@ LINE SECTION
 // Create a new LINE SDK client.
 const client = new bot_sdk_1.Client(clientConfig);
 
-// Function handler to receive the text.
+// Function handler to receive the text (for webhook).
 const textEventHandler = async (event) => {
     // Process all variables here.
     if (event.type !== 'message' || event.message.type !== 'text') {
@@ -90,14 +91,34 @@ const textEventHandler = async (event) => {
     await client.replyMessage(replyToken, response);
 };
 
-// PHILLIP TEST--------------------------------------------------
+// LINE quick reply message badge label only allows >= 20 characters
+function shortenArtistName(name) {
+    // Show full artist name if less than 20
+    if (name.length <= 20) {
+        return name;
+    } 
+    // Otherwise shorten artist name with ellipsis
+    else {
+        return name.substring(0, 17) + "...";
+    }
+}
+
 // Register the LINE middleware.
 // As an alternative, you could also pass the middleware in the route handler, which is what is used here.
 // app.use(middleware(middlewareConfig));
-// Route handler to receive webhook events.
-// This route is used to receive connection tests.
+
+
+/********************************************************************
+
+ APP ROUTES
+
+ *******************************************************************/
+
+// Root Route
 app.get('/', async (_, res) => {
 
+    // Initiate an update on startup so that route '/ping/' will not broadcast
+    // (in case FreshPing/Heroku restarts)
     res.redirect('/manual-update-local-data');
 
     // return res.status(200).json({
@@ -106,19 +127,10 @@ app.get('/', async (_, res) => {
     // });
 });
 
-function shortenArtistName(name) {
-    if (name.length <= 20) {
-        return name;
-    } else {
-        return name.substring(0, 17) + "...";
-    }
-}
-
+// This route is used to broadcast the latest playlist song to all friends
 // TODO fix the callback hell below
-// Route handler to broadcast a message.
 app.get('/broadcast', async (_, res) => {
-    // PHILLIP TEST--------------------------------------------------
-    // SPOTIFY ----------------------------------------------------------
+
     request.post(authOptions, function (error, response, body) {
         if (!error && response.statusCode === 200) {
 
@@ -136,18 +148,21 @@ app.get('/broadcast', async (_, res) => {
             request.get(playlistOptions, function (error, response, body) {
 
                 // Parse through response
-                const lastItemIndex = body.tracks.items.length - 1;
+                var lastItemIndex = body.tracks.items.length - 1;
                 var trackTitle = body.tracks.items[lastItemIndex].track.name;
+
                 var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
                 var artistSubstring = shortenArtistName(artist);
+
                 var userId = body.tracks.items[lastItemIndex].added_by.id;
                 var total = body.tracks.total;
-                // var shareLink = body.tracks.items[lastItemIndex].track.album.external_urls.spotify;
+
                 var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
                 var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
-                const ALBUM_LINK = body.external_urls.spotify;
-                const SONG_LINK = body.tracks.items[lastItemIndex].track.external_urls.spotify;
-                const ARTIST_LINK = body.tracks.items[lastItemIndex].track.artists[0].external_urls.spotify;
+
+                var albumLink = body.external_urls.spotify;
+                var songLink = body.tracks.items[lastItemIndex].track.external_urls.spotify;
+                var artistLink = body.tracks.items[lastItemIndex].track.artists[0].external_urls.spotify;
 
                 // Determine userName from userId:
                 var userIdOptions = {
@@ -172,17 +187,17 @@ app.get('/broadcast', async (_, res) => {
                     var userName = body.display_name;
 
                     // Compose message with Template Literals (Template Strings)
-                    var data = `${userName} has added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+                    var data = `I have added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
                     // Create a new message.
                     const textMessage = {
                         type: 'text',
                         text: data,
                         // Sender will appear in the notification push and in the convo
-                        // sender: {
-                        //     name: "Cony",
-                        //     iconUrl: "https://line.me/conyprof"
-                        // }
+                        sender: {
+                            name: userName,
+                            iconUrl: "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102"
+                        }
                     };
 
                     // Create a new image message.
@@ -192,36 +207,10 @@ app.get('/broadcast', async (_, res) => {
                         previewImageUrl: testSImageURL
                     };
 
-                    // Create a new image message.
-                    const imageMapMessage = {
-                        type: 'imagemap',
-                        baseUrl: `https://developers.line.biz/en/reference/messaging-api/#imagemap-message`,
-                        altText: 'Imagemap alt text',
-                        baseSize: { width: 1040, height: 1040 },
-                        actions: [
-                            { area: { x: 0, y: 0, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/manga/en' },
-                            { area: { x: 520, y: 0, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/music/en' },
-                            { area: { x: 0, y: 520, width: 520, height: 520 }, type: 'uri', linkUri: 'https://store.line.me/family/play/en' },
-                            { area: { x: 520, y: 520, width: 520, height: 520 }, type: 'message', text: 'URANAI!' },
-                        ],
-                        video: {
-                            originalContentUrl: testMImageURL,
-                            previewImageUrl: testMImageURL,
-                            area: {
-                                x: 280,
-                                y: 385,
-                                width: 480,
-                                height: 270,
-                            },
-                            externalLink: {
-                                linkUri: 'https://line.me',
-                                label: 'LINE'
-                            }
-                        },
-                    }
-
-                    // Create a quick reply button NOTE ONLY WORKS ON MOBILE
-                    // Note Label only allows max 20 char
+                    // Create a quick reply button 
+                    // NOTE:
+                    // - REPLY BADGES ONLY WORK APPEAR ON MOBILE
+                    // - Label only allows max 20 char
                     const quickReplyButton = {
                         type: 'image',
                         originalContentUrl: testMImageURL,
@@ -229,79 +218,37 @@ app.get('/broadcast', async (_, res) => {
                         quickReply: {
                             items: [
                                 {
+                                    // Quick reply to view song in Spotify
                                     type: "action",
                                     action: {
                                         type: "uri",
                                         label: "Check out song! 🎵",
-                                        uri: SONG_LINK
+                                        uri: songLink
                                     },
                                     imageUrl: testSImageURL
                                 },
                                 {
+                                    // Quick reply to view artist in Spotify
                                     type: "action",
                                     action: {
                                         type: "uri",
                                         label: artistSubstring,
-                                        uri: ARTIST_LINK
+                                        uri: artistLink
                                     },
                                     imageUrl: SPOTIFY_LOGO_URL
                                 },
                                 {
+                                    // Quick reply to view playlist in Spotify
                                     type: "action",
                                     action: {
                                         type: "uri",
                                         label: "Open Playlist 👁👄👁",
-                                        uri: ALBUM_LINK
+                                        uri: albumLink
                                     },
                                     imageUrl: SPOTIFY_LOGO_URL
                                 }
                             ]
                         }
-                    }
-
-                    // Create a sample carousel (Also only works on mobile)
-                    const carouselMessage = {
-                        type: 'template',
-                        altText: 'Carousel alt text',
-                        template: {
-                            type: 'carousel',
-                            columns: [
-                                {
-                                    thumbnailImageUrl: "https://developers.line.biz/media/common/logo-white.png",
-                                    title: 'hoge',
-                                    text: 'fuga',
-                                    actions: [
-                                        { label: 'Go to line.me', type: 'uri', uri: 'https://line.me' },
-                                        { label: 'Say hello1', type: 'postback', data: 'hello こんにちは' },
-                                    ],
-                                },
-                                {
-                                    thumbnailImageUrl: "https://developers.line.biz/media/common/logo-white.png",
-                                    title: 'hoge',
-                                    text: 'fuga',
-                                    actions: [
-                                        { label: '言 hello2', type: 'postback', data: 'hello こんにちは', text: 'hello こんにちは' },
-                                        { label: 'Say message', type: 'message', text: 'Rice=米' },
-                                    ],
-                                },
-                            ],
-                        },
-                    }
-
-                    // Create a sample button template message
-                    const buttonTemplateMessage = {
-                        type: 'template',
-                        altText: 'Datetime pickers alt text',
-                        template: {
-                            thumbnailImageUrl: "https://developers.line.biz/media/common/logo-white.png",
-                            type: 'buttons',
-                            text: 'Select date / time !',
-                            actions: [
-                                { type: 'datetimepicker', label: 'date', data: 'DATE', mode: 'date' },
-                                { type: 'datetimepicker', label: 'time', data: 'TIME', mode: 'time' },
-                                { type: 'datetimepicker', label: 'datetime', data: 'DATETIME', mode: 'datetime' },
-                            ],
-                        },
                     }
 
                     // Broadcast with SDK client function
@@ -311,8 +258,6 @@ app.get('/broadcast', async (_, res) => {
             });
         }
     });
-    // SPOTIFY ----------------------------------------------------------
-    // PHILLIP TEST--------------------------------------------------
 
     return res.status(200).json({
         status: 'success',
