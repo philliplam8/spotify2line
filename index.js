@@ -43,7 +43,7 @@ var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 // Playlist Data
 const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
 const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = TEST_PLAYLIST;
+const PLAYLIST = COLLAB_PLAYLIST;
 
 // your application requests authorization
 var authOptions = {
