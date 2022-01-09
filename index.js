@@ -35,6 +35,7 @@ const res = require("express/lib/response");
 const { redirect } = require("express/lib/response");
 var client_id = process.env.SPOTIFY_CLIENT_ID; // Your client id
 var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
+const SPOTIFY_LOGO_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
 
 // your application requests authorization
 var authOptions = {
@@ -240,19 +241,19 @@ app.get('/broadcast', async (_, res) => {
                                     type: "action",
                                     action: {
                                         type: "uri",
-                                        label: "Open Playlist 👁👄👁",
-                                        uri: ALBUM_LINK
+                                        label: artistSubstring,
+                                        uri: ARTIST_LINK
                                     },
-                                    imageUrl: "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png"
+                                    imageUrl: SPOTIFY_LOGO_URL
                                 },
                                 {
                                     type: "action",
                                     action: {
                                         type: "uri",
-                                        label: artistSubstring,
-                                        uri: ARTIST_LINK
+                                        label: "Open Playlist 👁👄👁",
+                                        uri: ALBUM_LINK
                                     },
-                                    imageUrl: "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png"
+                                    imageUrl: SPOTIFY_LOGO_URL
                                 }
                             ]
                         }
