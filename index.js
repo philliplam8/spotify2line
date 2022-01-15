@@ -247,6 +247,8 @@ app.get('/manual-update-local-data', async (_, res) => {
 // TODO fix the callback hell below
 app.get('/broadcast', async (_, res) => {
 
+    var currentTime = new Date();
+
     request.post(authOptions, function (error, response, body) {
         if (!error && response.statusCode === 200) {
 
@@ -268,6 +270,8 @@ app.get('/broadcast', async (_, res) => {
                 var trackTitle = body.tracks.items[lastItemIndex].track.name;
 
                 var addedAtTime = body.tracks.items[lastItemIndex].added_at;
+                var timeTZ = new Date(addedAtTime); // Convert to time object
+                var timeDifference = (currentTime - timeTZ) / 1000 / 60; // minutes
 
                 var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
                 var artistSubstring = shortenArtistName(artist);
@@ -297,18 +301,20 @@ app.get('/broadcast', async (_, res) => {
                     let rawdata = fs.readFileSync('total.json');
                     let databaseValue = JSON.parse(rawdata);
 
-                    // console.log(databaseValue['total'], total);
-                    if (databaseValue['total'] != total) {
-                        
+                    // Parse through response
+                    var userName = body.display_name;
+
+                    // only broadcast if song was added within a minute of ping and new song was added
+                    if (timeDifference <= 1 & databaseValue['total'] != total) {
+
                         // Update database value to current value
                         databaseValue.total = total;
                         fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
-                        // Parse through response
-                        var userName = body.display_name;
-
                         // Compose message with Template Literals (Template Strings)
-                        var data = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist.`;
+                        var data = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
+                        // var testingData = `Time Difference = ${timeDifference}`;
+
 
                         // Create a new message.
                         const textMessage = {
@@ -368,6 +374,10 @@ app.get('/broadcast', async (_, res) => {
                         // Broadcast with SDK client function
                         return client.broadcast([textMessage, quickReplyButton]);
                     }
+
+                    // Update database value to current value in case song was added but deleted before ping detected change
+                    databaseValue.total = total;
+                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
                     res.end();
 
