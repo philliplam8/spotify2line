@@ -17,6 +17,7 @@ var cookieParser = require('cookie-parser');
 const res = require("express/lib/response");
 const { redirect } = require("express/lib/response");
 const e = require("express");
+const { time } = require("console");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -113,6 +114,71 @@ function readJSONValue(file) {
 function updateJSONValue(file, newValue) {
     return;
 }
+
+function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName) {
+
+    // Compose message with Template Literals (Template Strings)
+    const DATA = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
+
+    // Create a new message.
+    const textMessage = {
+        type: 'text',
+        text: DATA,
+        sender: {
+            name: userName, // Sender will appear in the notification push and in the convo
+            iconUrl: "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102"
+        }
+    };
+
+    return textMessage;
+}
+
+function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, artistSubstring, artistLink, albumLink) {
+
+    // Create a quick reply button (Note: only works on mobile and label allows max 20 char)
+    const quickReplyButton = {
+        type: 'image',
+        originalContentUrl: testMImageURL,
+        previewImageUrl: testSImageURL,
+        quickReply: {
+            items: [
+                {
+                    // Quick reply to view song in Spotify
+                    type: "action",
+                    action: {
+                        type: "uri",
+                        label: "Check out song! 🎵",
+                        uri: songLink
+                    },
+                    imageUrl: testSImageURL
+                },
+                {
+                    // Quick reply to view artist in Spotify
+                    type: "action",
+                    action: {
+                        type: "uri",
+                        label: artistSubstring,
+                        uri: artistLink
+                    },
+                    imageUrl: SPOTIFY_LOGO_URL
+                },
+                {
+                    // Quick reply to view playlist in Spotify
+                    type: "action",
+                    action: {
+                        type: "uri",
+                        label: "Open Playlist 👁👄👁",
+                        uri: albumLink
+                    },
+                    imageUrl: SPOTIFY_LOGO_URL
+                }
+            ]
+        }
+    }
+
+    return quickReplyButton;
+}
+
 
 /********************************************************************
 
@@ -261,14 +327,13 @@ app.get('/broadcast', async (_, res) => {
         // Promise "Producing Code" (May take some time)
         request.post(authOptions, function (error, response, body) {
 
-            if (!error && response.statusCode == 200) {
-                // use the access token to access the Spotify Web API
-                var token = body.access_token;
-                console.log({ token });
+            // use the access token to access the Spotify Web API
+            var token = body.access_token;
+            // console.log({ token });
 
-                myResolve(token); // if successful
-                myReject(error);  // if error
-            }
+            myResolve(token); // if successful
+            myReject(error);  // if error
+
         });
     });
 
@@ -323,6 +388,7 @@ app.get('/broadcast', async (_, res) => {
                 json: true
             };
 
+            // Grab userName from userId using Spotify Users API
             request.get(userIdOptions, function (error, response, body) {
 
                 // Get previous value of Total stored
@@ -339,61 +405,8 @@ app.get('/broadcast', async (_, res) => {
                     databaseValue.total = total;
                     fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
-                    // Compose message with Template Literals (Template Strings)
-                    var data = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
-                    // var testingData = `Time Difference = ${timeDifference}`;
-
-
-                    // Create a new message.
-                    const textMessage = {
-                        type: 'text',
-                        text: data,
-                        sender: {
-                            name: userName, // Sender will appear in the notification push and in the convo
-                            iconUrl: "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102"
-                        }
-                    };
-
-                    // Create a quick reply button (Note: only works on mobile and label allows max 20 char)
-                    const quickReplyButton = {
-                        type: 'image',
-                        originalContentUrl: testMImageURL,
-                        previewImageUrl: testSImageURL,
-                        quickReply: {
-                            items: [
-                                {
-                                    // Quick reply to view song in Spotify
-                                    type: "action",
-                                    action: {
-                                        type: "uri",
-                                        label: "Check out song! 🎵",
-                                        uri: songLink
-                                    },
-                                    imageUrl: testSImageURL
-                                },
-                                {
-                                    // Quick reply to view artist in Spotify
-                                    type: "action",
-                                    action: {
-                                        type: "uri",
-                                        label: artistSubstring,
-                                        uri: artistLink
-                                    },
-                                    imageUrl: SPOTIFY_LOGO_URL
-                                },
-                                {
-                                    // Quick reply to view playlist in Spotify
-                                    type: "action",
-                                    action: {
-                                        type: "uri",
-                                        label: "Open Playlist 👁👄👁",
-                                        uri: albumLink
-                                    },
-                                    imageUrl: SPOTIFY_LOGO_URL
-                                }
-                            ]
-                        }
-                    }
+                    const textMessage = constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName);
+                    const quickReplyButton = constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, artistSubstring, artistLink, albumLink);
 
                     // Broadcast with SDK client function
                     return client.broadcast([textMessage, quickReplyButton]);
