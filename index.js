@@ -24,6 +24,7 @@ const clientConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
     channelSecret: process.env.CHANNEL_SECRET,
 };
+
 const middlewareConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
     channelSecret: process.env.CHANNEL_SECRET || '',
@@ -45,7 +46,7 @@ var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 // Playlist Data
 const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
 const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = TEST_PLAYLIST;
+const PLAYLIST = COLLAB_PLAYLIST;
 
 // your application requests authorization
 var authOptions = {
@@ -179,7 +180,8 @@ function readStoredTotalValue(file) {
 function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName) {
 
     // Compose message with Template Literals (Template Strings)
-    const DATA = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
+    const DATA_TESTING = `I added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
+    const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
     // Create a new message.
     const textMessage = {
@@ -239,7 +241,6 @@ function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, arti
 
     return quickReplyButton;
 }
-
 
 /********************************************************************
 
@@ -429,18 +430,18 @@ app.get('/broadcast', async (_, res) => {
                 var userName = body.display_name;
 
                 // Get previous value of Total stored
-                var jsonFile = 'total.json';
-                let storedPlaylistTotalObject = readStoredTotalValue(jsonFile);
+                const JSON_FILE = 'total.json';
+                let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
 
                 // Only broadcast if song was added within a minute of ping and new song was added
                 if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
 
                     // Update database value to current value
                     storedPlaylistTotalObject.total = parsedPlaylist.total;
-                    fs.writeFileSync(jsonFile, JSON.stringify(storedPlaylistTotalObject));
+                    fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
                     // Construct messages
-                    const textMessage = constructTextMessage(
+                    const TEXT_MESSAGE = constructTextMessage(
                         parsedPlaylist.trackTitle,
                         parsedPlaylist.artist,
                         parsedPlaylist.addedAtTime,
@@ -448,7 +449,7 @@ app.get('/broadcast', async (_, res) => {
                         parsedPlaylist.timeDifference,
                         userName);
 
-                    const quickReplyButton = constructQuickReplyButtons(
+                    const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(
                         parsedPlaylist.testMImageURL,
                         parsedPlaylist.testSImageURL,
                         parsedPlaylist.songLink,
@@ -457,11 +458,12 @@ app.get('/broadcast', async (_, res) => {
                         parsedPlaylist.albumLink);
 
                     // Broadcast with SDK client function
-                    return client.broadcast([textMessage, quickReplyButton]);
+                    return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
                 }
 
-
-
+                // Update database value to current value anyways 
+                storedPlaylistTotalObject.total = parsedPlaylist.total;
+                fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
                 res.end();
             });
         });
@@ -471,7 +473,95 @@ app.get('/broadcast', async (_, res) => {
         status: 'success',
         message: 'Connected successfully!',
     });
+});
 
+// Force Broadcast
+app.get('/broadcast-override', async (_, res) => {
+
+    // Get the current time the '/broadcast' route was requested
+    var currentTime = new Date();
+
+    // Create promise to grab Spotify access token
+    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
+
+        // Promise "Producing Code" (May take some time)
+        request.post(authOptions, function (error, response, body) {
+
+            // use the access token to access the Spotify Web API
+            var token = body.access_token;
+
+            myResolve(token); // if successful
+            myReject(error);  // if error
+
+        });
+    });
+
+    // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
+    mySpotifyTokenPromise.then(function (token) {
+
+        var playlistOptions = {
+            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            json: true
+        };
+
+        request.get(playlistOptions, function (error, response, body) {
+
+            // PARSE THROUGH PLAYLIST API RESPONSE;
+            var parsedPlaylist = parsePlaylistAPI(body, currentTime);
+
+            // Determine userName from userId:
+            var userIdOptions = {
+                url: 'https://api.spotify.com/v1/users/' + parsedPlaylist.userId,
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+
+            // Grab userName from userId using Spotify Users API
+            request.get(userIdOptions, function (error, response, body) {
+
+                // Parse through response
+                var userName = body.display_name;
+
+                // Get previous value of Total stored
+                const JSON_FILE = 'total.json';
+                let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
+
+                // Update database value to current value
+                storedPlaylistTotalObject.total = parsedPlaylist.total;
+                fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
+
+                // Construct messages
+                const TEXT_MESSAGE = constructTextMessage(
+                    parsedPlaylist.trackTitle,
+                    parsedPlaylist.artist,
+                    parsedPlaylist.addedAtTime,
+                    parsedPlaylist.total,
+                    parsedPlaylist.timeDifference,
+                    userName);
+
+                const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(
+                    parsedPlaylist.testMImageURL,
+                    parsedPlaylist.testSImageURL,
+                    parsedPlaylist.songLink,
+                    parsedPlaylist.artistSubstring,
+                    parsedPlaylist.artistLink,
+                    parsedPlaylist.albumLink);
+
+                // Broadcast with SDK client function
+                return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
+            });
+        });
+    });
+
+    return res.status(200).json({
+        status: 'success',
+        message: 'Connected successfully!',
+    });
 });
 
 // Create a server and listen to it.
