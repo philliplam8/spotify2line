@@ -106,9 +106,14 @@ function shortenArtistName(name) {
     }
 }
 
-function convertTimeToEST(time) {
+function readJSONValue(file) {
     return;
 }
+
+function updateJSONValue(file, newValue) {
+    return;
+}
+
 /********************************************************************
 
  APP ROUTES
@@ -247,153 +252,161 @@ app.get('/manual-update-local-data', async (_, res) => {
 // TODO fix the callback hell below
 app.get('/broadcast', async (_, res) => {
 
+    // Get the current time the /broadcast route was requested
     var currentTime = new Date();
 
-    request.post(authOptions, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
+    // Create promise to grab Spotify access token
+    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
 
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-            console.log({ token });
+        // Promise "Producing Code" (May take some time)
+        request.post(authOptions, function (error, response, body) {
 
-            var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+            if (!error && response.statusCode == 200) {
+                // use the access token to access the Spotify Web API
+                var token = body.access_token;
+                console.log({ token });
+
+                myResolve(token); // if successful
+                myReject(error);  // if error
+            }
+        });
+    });
+
+    // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
+    mySpotifyTokenPromise.then(function (token) {
+
+        var playlistOptions = {
+            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            json: true
+        };
+
+        request.get(playlistOptions, function (error, response, body) {
+
+            // PARSE THROUGH PLAYLIST API RESPONSE;
+            var total = body.tracks.total;
+            var lastItemIndex = body.tracks.items.length - 1;
+            var lastItem = body.tracks.items[lastItemIndex];
+
+            // Time added
+            var addedAtTime = lastItem.added_at;
+            var timeTZ = new Date(addedAtTime); // Convert to time object
+            var timeDifference = (currentTime - timeTZ) / 1000 / 60; // minutes
+
+            // Title
+            var trackTitle = lastItem.track.name;
+
+            // Artist
+            var artist = lastItem.track.artists[0].name;
+            var artistSubstring = shortenArtistName(artist);
+
+            // Album Image
+            var testMImageURL = lastItem.track.album.images[0].url;
+            var testSImageURL = lastItem.track.album.images[1].url;
+
+            // Links
+            var albumLink = body.external_urls.spotify;
+            var songLink = lastItem.track.external_urls.spotify;
+            var artistLink = lastItem.track.artists[0].external_urls.spotify;
+
+            // User
+            var userId = lastItem.added_by.id;
+
+            // Determine userName from userId:
+            var userIdOptions = {
+                url: 'https://api.spotify.com/v1/users/' + userId,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
                 json: true
             };
 
-            request.get(playlistOptions, function (error, response, body) {
+            request.get(userIdOptions, function (error, response, body) {
 
-                /* Parse through response */
-                // Misc Details
-                var lastItemIndex = body.tracks.items.length - 1;
-                var total = body.tracks.total;
+                // Get previous value of Total stored
+                let rawdata = fs.readFileSync('total.json');
+                let databaseValue = JSON.parse(rawdata);
 
-                // Time added
-                var addedAtTime = body.tracks.items[lastItemIndex].added_at;
-                var timeTZ = new Date(addedAtTime); // Convert to time object
-                var timeDifference = (currentTime - timeTZ) / 1000 / 60; // minutes
+                // Parse through response
+                var userName = body.display_name;
 
-                // Title
-                var trackTitle = body.tracks.items[lastItemIndex].track.name;
+                // only broadcast if song was added within a minute of ping and new song was added
+                if (timeDifference <= 1 & databaseValue['total'] != total) {
 
-                // Artist
-                var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
-                var artistSubstring = shortenArtistName(artist);
-
-                // Album Image
-                var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
-                var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
-
-                // Links
-                var albumLink = body.external_urls.spotify;
-                var songLink = body.tracks.items[lastItemIndex].track.external_urls.spotify;
-                var artistLink = body.tracks.items[lastItemIndex].track.artists[0].external_urls.spotify;
-
-                // User
-                var userId = body.tracks.items[lastItemIndex].added_by.id;
-
-                // Determine userName from userId:
-                var userIdOptions = {
-                    url: 'https://api.spotify.com/v1/users/' + userId,
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    },
-                    json: true
-                };
-
-                request.get(userIdOptions, function (error, response, body) {
-
-                    // Get previous value of Total stored
-                    let rawdata = fs.readFileSync('total.json');
-                    let databaseValue = JSON.parse(rawdata);
-
-                    // Parse through response
-                    var userName = body.display_name;
-
-                    // only broadcast if song was added within a minute of ping and new song was added
-                    if (timeDifference <= 1 & databaseValue['total'] != total) {
-
-                        // Update database value to current value
-                        databaseValue.total = total;
-                        fs.writeFileSync('total.json', JSON.stringify(databaseValue));
-
-                        // Compose message with Template Literals (Template Strings)
-                        var data = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
-                        // var testingData = `Time Difference = ${timeDifference}`;
-
-
-                        // Create a new message.
-                        const textMessage = {
-                            type: 'text',
-                            text: data,
-                            // Sender will appear in the notification push and in the convo
-                            sender: {
-                                name: userName,
-                                iconUrl: "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102"
-                            }
-                        };
-
-                        // Create a quick reply button 
-                        // NOTE:
-                        // - REPLY BADGES ONLY WORK APPEAR ON MOBILE
-                        // - Label only allows max 20 char
-                        const quickReplyButton = {
-                            type: 'image',
-                            originalContentUrl: testMImageURL,
-                            previewImageUrl: testSImageURL,
-                            quickReply: {
-                                items: [
-                                    {
-                                        // Quick reply to view song in Spotify
-                                        type: "action",
-                                        action: {
-                                            type: "uri",
-                                            label: "Check out song! 🎵",
-                                            uri: songLink
-                                        },
-                                        imageUrl: testSImageURL
-                                    },
-                                    {
-                                        // Quick reply to view artist in Spotify
-                                        type: "action",
-                                        action: {
-                                            type: "uri",
-                                            label: artistSubstring,
-                                            uri: artistLink
-                                        },
-                                        imageUrl: SPOTIFY_LOGO_URL
-                                    },
-                                    {
-                                        // Quick reply to view playlist in Spotify
-                                        type: "action",
-                                        action: {
-                                            type: "uri",
-                                            label: "Open Playlist 👁👄👁",
-                                            uri: albumLink
-                                        },
-                                        imageUrl: SPOTIFY_LOGO_URL
-                                    }
-                                ]
-                            }
-                        }
-
-                        // Broadcast with SDK client function
-                        return client.broadcast([textMessage, quickReplyButton]);
-                    }
-
-                    // Update database value to current value in case song was added but deleted before ping detected change
+                    // Update database value to current value
                     databaseValue.total = total;
                     fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
-                    res.end();
+                    // Compose message with Template Literals (Template Strings)
+                    var data = `I just added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
+                    // var testingData = `Time Difference = ${timeDifference}`;
 
-                });
-            })
-        }
-    })
+
+                    // Create a new message.
+                    const textMessage = {
+                        type: 'text',
+                        text: data,
+                        sender: {
+                            name: userName, // Sender will appear in the notification push and in the convo
+                            iconUrl: "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102"
+                        }
+                    };
+
+                    // Create a quick reply button (Note: only works on mobile and label allows max 20 char)
+                    const quickReplyButton = {
+                        type: 'image',
+                        originalContentUrl: testMImageURL,
+                        previewImageUrl: testSImageURL,
+                        quickReply: {
+                            items: [
+                                {
+                                    // Quick reply to view song in Spotify
+                                    type: "action",
+                                    action: {
+                                        type: "uri",
+                                        label: "Check out song! 🎵",
+                                        uri: songLink
+                                    },
+                                    imageUrl: testSImageURL
+                                },
+                                {
+                                    // Quick reply to view artist in Spotify
+                                    type: "action",
+                                    action: {
+                                        type: "uri",
+                                        label: artistSubstring,
+                                        uri: artistLink
+                                    },
+                                    imageUrl: SPOTIFY_LOGO_URL
+                                },
+                                {
+                                    // Quick reply to view playlist in Spotify
+                                    type: "action",
+                                    action: {
+                                        type: "uri",
+                                        label: "Open Playlist 👁👄👁",
+                                        uri: albumLink
+                                    },
+                                    imageUrl: SPOTIFY_LOGO_URL
+                                }
+                            ]
+                        }
+                    }
+
+                    // Broadcast with SDK client function
+                    return client.broadcast([textMessage, quickReplyButton]);
+                }
+
+                // Update database value to current value in case song was added but deleted before ping detected change
+                databaseValue.total = total;
+                fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+
+                res.end();
+            });
+        });
+    });
 
     return res.status(200).json({
         status: 'success',
