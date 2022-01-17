@@ -107,6 +107,70 @@ function shortenArtistName(name) {
     }
 }
 
+function parsePlaylistAPI(body, currentTime) {
+
+    // PARSE THROUGH PLAYLIST API RESPONSE;
+    var total = body.tracks.total;
+    var lastItemIndex = body.tracks.items.length - 1;
+    var lastItem = body.tracks.items[lastItemIndex];
+
+    // Time added
+    var addedAtTime = lastItem.added_at;
+    var timeTZ = new Date(addedAtTime); // Convert to time object
+    var timeDifference = (currentTime - timeTZ) / 1000 / 60; // minutes
+
+    // Title
+    var trackTitle = lastItem.track.name;
+
+    // Artist
+    var artist = lastItem.track.artists[0].name;
+    var artistSubstring = shortenArtistName(artist);
+
+    // Album Image
+    var testMImageURL = lastItem.track.album.images[0].url;
+    var testSImageURL = lastItem.track.album.images[1].url;
+
+    // Links
+    var albumLink = body.external_urls.spotify;
+    var songLink = lastItem.track.external_urls.spotify;
+    var artistLink = lastItem.track.artists[0].external_urls.spotify;
+
+    // User
+    var userId = lastItem.added_by.id;
+
+    // Return data as a object literal
+    var parsedPlaylist = {
+        total : total,
+        lastItemIndex : lastItemIndex,
+        lastItem : lastItem,
+
+        // Time added
+        addedAtTime : addedAtTime,
+        timeDifference : timeDifference,
+
+        // Title
+        trackTitle : trackTitle,
+
+        // Artist
+        artist : artist,
+        artistSubstring : artistSubstring,
+
+        // Album Image
+        testMImageURL : testMImageURL,
+        testSImageURL : testSImageURL,
+
+        // Links
+        albumLink : albumLink,
+        songLink : songLink,
+        artistLink : artistLink,
+
+        // User
+        userId : userId
+    };
+
+    return parsedPlaylist;
+}
+
 function readJSONValue(file) {
     return;
 }
@@ -351,37 +415,11 @@ app.get('/broadcast', async (_, res) => {
         request.get(playlistOptions, function (error, response, body) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
-            var total = body.tracks.total;
-            var lastItemIndex = body.tracks.items.length - 1;
-            var lastItem = body.tracks.items[lastItemIndex];
-
-            // Time added
-            var addedAtTime = lastItem.added_at;
-            var timeTZ = new Date(addedAtTime); // Convert to time object
-            var timeDifference = (currentTime - timeTZ) / 1000 / 60; // minutes
-
-            // Title
-            var trackTitle = lastItem.track.name;
-
-            // Artist
-            var artist = lastItem.track.artists[0].name;
-            var artistSubstring = shortenArtistName(artist);
-
-            // Album Image
-            var testMImageURL = lastItem.track.album.images[0].url;
-            var testSImageURL = lastItem.track.album.images[1].url;
-
-            // Links
-            var albumLink = body.external_urls.spotify;
-            var songLink = lastItem.track.external_urls.spotify;
-            var artistLink = lastItem.track.artists[0].external_urls.spotify;
-
-            // User
-            var userId = lastItem.added_by.id;
+            var parsedPlaylist = parsePlaylistAPI(body, currentTime);
 
             // Determine userName from userId:
             var userIdOptions = {
-                url: 'https://api.spotify.com/v1/users/' + userId,
+                url: 'https://api.spotify.com/v1/users/' + parsedPlaylist.userId,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -399,21 +437,35 @@ app.get('/broadcast', async (_, res) => {
                 var userName = body.display_name;
 
                 // only broadcast if song was added within a minute of ping and new song was added
-                if (timeDifference <= 1 & databaseValue['total'] != total) {
+                if (parsedPlaylist.timeDifference <= 1 & databaseValue['total'] != parsedPlaylist.total) {
 
                     // Update database value to current value
-                    databaseValue.total = total;
+                    databaseValue.total = parsedPlaylist.total;
                     fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
-                    const textMessage = constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName);
-                    const quickReplyButton = constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, artistSubstring, artistLink, albumLink);
+                    // Construct messages
+                    const textMessage = constructTextMessage(
+                        parsedPlaylist.trackTitle,
+                        parsedPlaylist.artist,
+                        parsedPlaylist.addedAtTime,
+                        parsedPlaylist.total,
+                        parsedPlaylist.timeDifference,
+                        userName);
+
+                    const quickReplyButton = constructQuickReplyButtons(
+                        parsedPlaylist.testMImageURL,
+                        parsedPlaylist.testSImageURL,
+                        parsedPlaylist.songLink,
+                        parsedPlaylist.artistSubstring,
+                        parsedPlaylist.artistLink,
+                        parsedPlaylist.albumLink);
 
                     // Broadcast with SDK client function
                     return client.broadcast([textMessage, quickReplyButton]);
                 }
 
                 // Update database value to current value in case song was added but deleted before ping detected change
-                databaseValue.total = total;
+                databaseValue.total = parsedPlaylist.total;
                 fs.writeFileSync('total.json', JSON.stringify(databaseValue));
 
                 res.end();
