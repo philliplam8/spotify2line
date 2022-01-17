@@ -254,6 +254,7 @@ app.get('/broadcast', async (_, res) => {
 
             // use the access token to access the Spotify Web API
             var token = body.access_token;
+            console.log({ token });
 
             var playlistOptions = {
                 url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
@@ -265,26 +266,34 @@ app.get('/broadcast', async (_, res) => {
 
             request.get(playlistOptions, function (error, response, body) {
 
-                // Parse through response
+                /* Parse through response */
+                // Misc Details
                 var lastItemIndex = body.tracks.items.length - 1;
-                var trackTitle = body.tracks.items[lastItemIndex].track.name;
+                var total = body.tracks.total;
 
+                // Time added
                 var addedAtTime = body.tracks.items[lastItemIndex].added_at;
                 var timeTZ = new Date(addedAtTime); // Convert to time object
                 var timeDifference = (currentTime - timeTZ) / 1000 / 60; // minutes
 
+                // Title
+                var trackTitle = body.tracks.items[lastItemIndex].track.name;
+
+                // Artist
                 var artist = body.tracks.items[lastItemIndex].track.artists[0].name;
                 var artistSubstring = shortenArtistName(artist);
 
-                var userId = body.tracks.items[lastItemIndex].added_by.id;
-                var total = body.tracks.total;
-
+                // Album Image
                 var testMImageURL = body.tracks.items[lastItemIndex].track.album.images[0].url;
                 var testSImageURL = body.tracks.items[lastItemIndex].track.album.images[1].url;
 
+                // Links
                 var albumLink = body.external_urls.spotify;
                 var songLink = body.tracks.items[lastItemIndex].track.external_urls.spotify;
                 var artistLink = body.tracks.items[lastItemIndex].track.artists[0].external_urls.spotify;
+
+                // User
+                var userId = body.tracks.items[lastItemIndex].added_by.id;
 
                 // Determine userName from userId:
                 var userIdOptions = {
@@ -382,14 +391,15 @@ app.get('/broadcast', async (_, res) => {
                     res.end();
 
                 });
-            });
+            })
         }
-    });
+    })
 
     return res.status(200).json({
         status: 'success',
         message: 'Connected successfully!',
     });
+
 });
 
 // Create a server and listen to it.
