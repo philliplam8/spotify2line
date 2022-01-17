@@ -15,7 +15,7 @@ var express = require('express'); // Express web server framework
 var cors = require('cors');
 var cookieParser = require('cookie-parser');
 const res = require("express/lib/response");
-const { redirect } = require("express/lib/response");
+const { redirect, type } = require("express/lib/response");
 const e = require("express");
 const { time } = require("console");
 
@@ -140,43 +140,40 @@ function parsePlaylistAPI(body, currentTime) {
 
     // Return data as a object literal
     var parsedPlaylist = {
-        total : total,
-        lastItemIndex : lastItemIndex,
-        lastItem : lastItem,
+        total: total,
+        lastItemIndex: lastItemIndex,
+        lastItem: lastItem,
 
         // Time added
-        addedAtTime : addedAtTime,
-        timeDifference : timeDifference,
+        addedAtTime: addedAtTime,
+        timeDifference: timeDifference,
 
         // Title
-        trackTitle : trackTitle,
+        trackTitle: trackTitle,
 
         // Artist
-        artist : artist,
-        artistSubstring : artistSubstring,
+        artist: artist,
+        artistSubstring: artistSubstring,
 
         // Album Image
-        testMImageURL : testMImageURL,
-        testSImageURL : testSImageURL,
+        testMImageURL: testMImageURL,
+        testSImageURL: testSImageURL,
 
         // Links
-        albumLink : albumLink,
-        songLink : songLink,
-        artistLink : artistLink,
+        albumLink: albumLink,
+        songLink: songLink,
+        artistLink: artistLink,
 
         // User
-        userId : userId
+        userId: userId
     };
 
     return parsedPlaylist;
 }
 
-function readJSONValue(file) {
-    return;
-}
-
-function updateJSONValue(file, newValue) {
-    return;
+function readStoredTotalValue(file) {
+    let rawdata = fs.readFileSync(file);
+    return JSON.parse(rawdata);
 }
 
 function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName) {
@@ -292,7 +289,7 @@ app.get('/check-local-data-two', async (_, res) => {
 
     // Get local database value
     let data = fs.readFileSync('total.json');
-    let databaseValue = JSON.parse(data);
+    let storedPlaylistTotalObject = JSON.parse(data);
 
     // Create promise to grab Spotify access token
     let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
@@ -327,7 +324,7 @@ app.get('/check-local-data-two', async (_, res) => {
                     // Parse through response
                     var spotifyTotal = body.tracks.total;
 
-                    res.send({ databaseValue, spotifyTotal });
+                    res.send({ storedPlaylistTotalObject, spotifyTotal });
                     res.end();
                 }
             });
@@ -344,7 +341,7 @@ app.get('/manual-update-local-data', async (_, res) => {
 
     // Get local database value
     let data = fs.readFileSync('total.json');
-    let databaseValue = JSON.parse(data);
+    let storedPlaylistTotalObject = JSON.parse(data);
 
     request.post(authOptions, function (error, response, body) {
         if (!error && response.statusCode === 200) {
@@ -367,10 +364,10 @@ app.get('/manual-update-local-data', async (_, res) => {
                     var spotifyTotal = body.tracks.total;
 
                     // Update database value to current value
-                    databaseValue.total = spotifyTotal;
-                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+                    storedPlaylistTotalObject.total = spotifyTotal;
+                    fs.writeFileSync('total.json', JSON.stringify(storedPlaylistTotalObject));
 
-                    res.send({ databaseValue, spotifyTotal });
+                    res.send({ storedPlaylistTotalObject, spotifyTotal });
                     res.end();
                 }
             });
@@ -382,7 +379,7 @@ app.get('/manual-update-local-data', async (_, res) => {
 // TODO fix the callback hell below
 app.get('/broadcast', async (_, res) => {
 
-    // Get the current time the /broadcast route was requested
+    // Get the current time the '/broadcast' route was requested
     var currentTime = new Date();
 
     // Create promise to grab Spotify access token
@@ -393,7 +390,6 @@ app.get('/broadcast', async (_, res) => {
 
             // use the access token to access the Spotify Web API
             var token = body.access_token;
-            // console.log({ token });
 
             myResolve(token); // if successful
             myReject(error);  // if error
@@ -429,19 +425,19 @@ app.get('/broadcast', async (_, res) => {
             // Grab userName from userId using Spotify Users API
             request.get(userIdOptions, function (error, response, body) {
 
-                // Get previous value of Total stored
-                let rawdata = fs.readFileSync('total.json');
-                let databaseValue = JSON.parse(rawdata);
-
                 // Parse through response
                 var userName = body.display_name;
 
-                // only broadcast if song was added within a minute of ping and new song was added
-                if (parsedPlaylist.timeDifference <= 1 & databaseValue['total'] != parsedPlaylist.total) {
+                // Get previous value of Total stored
+                var jsonFile = 'total.json';
+                let storedPlaylistTotalObject = readStoredTotalValue(jsonFile);
+
+                // Only broadcast if song was added within a minute of ping and new song was added
+                if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
 
                     // Update database value to current value
-                    databaseValue.total = parsedPlaylist.total;
-                    fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+                    storedPlaylistTotalObject.total = parsedPlaylist.total;
+                    fs.writeFileSync(jsonFile, JSON.stringify(storedPlaylistTotalObject));
 
                     // Construct messages
                     const textMessage = constructTextMessage(
@@ -464,9 +460,7 @@ app.get('/broadcast', async (_, res) => {
                     return client.broadcast([textMessage, quickReplyButton]);
                 }
 
-                // Update database value to current value in case song was added but deleted before ping detected change
-                databaseValue.total = parsedPlaylist.total;
-                fs.writeFileSync('total.json', JSON.stringify(databaseValue));
+
 
                 res.end();
             });
