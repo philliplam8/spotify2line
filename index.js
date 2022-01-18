@@ -128,7 +128,7 @@ function parsePlaylistAPI(body, currentTime) {
     var artistSubstring = shortenArtistName(artist); // used for quick reply
 
     var totalArtists = lastItem.track.artists.length;
-    console.log({ totalArtists });
+    // console.log({ totalArtists });
 
     // For multiple artists
     if (totalArtists >= 2) {
