@@ -46,7 +46,7 @@ var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 // Playlist Data
 const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
 const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = COLLAB_PLAYLIST;
+const PLAYLIST = TEST_PLAYLIST;
 
 // your application requests authorization
 var authOptions = {
@@ -125,7 +125,38 @@ function parsePlaylistAPI(body, currentTime) {
 
     // Artist
     var artist = lastItem.track.artists[0].name;
-    var artistSubstring = shortenArtistName(artist);
+    var artistSubstring = shortenArtistName(artist); // used for quick reply
+
+    var totalArtists = lastItem.track.artists.length;
+    console.log({ totalArtists });
+
+    // For multiple artists
+    if (totalArtists >= 2) {
+
+        // If there are only 2 artists
+        var firstArtist = artist;
+        var secondArtist = lastItem.track.artists[1].name;
+        artist = firstArtist + " and " + secondArtist;
+
+        // If there are more than 2 artists
+        if (totalArtists > 2) {
+            artist = firstArtist;
+
+            for (let i = 1; i < totalArtists; i++) {
+
+                // Last Artist
+                if (i == totalArtists - 1) {
+                    let lastArtist = lastItem.track.artists[i].name;
+                    artist = artist + ", and " + lastArtist;
+                    break;
+                }
+
+                let nextArtist = lastItem.track.artists[i].name;
+                artist = artist + ", " + nextArtist;
+            }
+        }
+
+    };
 
     // Album Image
     var testMImageURL = lastItem.track.album.images[0].url;
@@ -155,6 +186,7 @@ function parsePlaylistAPI(body, currentTime) {
         // Artist
         artist: artist,
         artistSubstring: artistSubstring,
+        totalArtists: totalArtists,
 
         // Album Image
         testMImageURL: testMImageURL,
