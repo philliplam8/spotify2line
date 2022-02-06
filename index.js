@@ -9,14 +9,13 @@ const line = require("@line/bot-sdk");
 var request = require('request'); // "Request" library
 
 const fs = require('fs'); // fs Module to read/write JSON files
-require('dotenv').config()  // pre-loaded instead using '$ node -r dotenv/config app.js'
+require('dotenv').config();  // pre-loaded instead using '$ node -r dotenv/config app.js'
 
 var express = require('express'); // Express web server framework
 var cors = require('cors');
 var cookieParser = require('cookie-parser');
 const res = require("express/lib/response");
 const { redirect, type } = require("express/lib/response");
-const e = require("express");
 const { time } = require("console");
 
 // Setup all LINE client and Express configurations.
@@ -46,7 +45,10 @@ var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 // Playlist Data
 const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
 const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = COLLAB_PLAYLIST;
+const PLAYLIST = TEST_PLAYLIST;
+
+// Images
+const CONY_IMG = "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102";
 
 // your application requests authorization
 var authOptions = {
@@ -155,7 +157,6 @@ function parsePlaylistAPI(body, currentTime) {
                 artist = artist + ", " + nextArtist;
             }
         }
-
     };
 
     // Album Image
@@ -221,14 +222,14 @@ function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDiffer
         text: DATA,
         sender: {
             name: userName, // Sender will appear in the notification push and in the convo
-            iconUrl: "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102"
+            iconUrl: CONY_IMG
         }
     };
 
     return textMessage;
 }
 
-function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, artistSubstring, artistLink, albumLink) {
+function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, artistSubstring, artistLink, albumLink, userName) {
 
     // Create a quick reply button (Note: only works on mobile and label allows max 20 char)
     const quickReplyButton = {
@@ -268,6 +269,10 @@ function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, arti
                     imageUrl: SPOTIFY_LOGO_URL
                 }
             ]
+        },
+        sender: {
+            name: userName,
+            iconUrl: CONY_IMG
         }
     }
 
@@ -582,8 +587,8 @@ app.get('/broadcast-override', async (_, res) => {
                     parsedPlaylist.songLink,
                     parsedPlaylist.artistSubstring,
                     parsedPlaylist.artistLink,
-                    parsedPlaylist.albumLink);
-
+                    parsedPlaylist.albumLink,
+                    userName);
                 // Broadcast with SDK client function
                 return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
             });
