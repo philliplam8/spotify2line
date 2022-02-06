@@ -15,7 +15,9 @@ npm install @line/bot-sdk express cors cookie-parser request fs dotenv
 ```
 
 ## Usage
-This project will use the following free services to host and run the spotify2line application
+This project will use the following APIs and free services to run and host the spotify2line application
+- [Spotify Web API](https://developer.spotify.com/documentation/web-api/reference/#/)
+- [LINE Messaging API](https://developers.line.biz/en/services/messaging-api/)
 - [Heroku](https://www.heroku.com/)
 - [FreshPing](https://app.freshping.io/)
 
