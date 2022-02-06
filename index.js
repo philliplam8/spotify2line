@@ -288,41 +288,11 @@ function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, arti
 // Root Route
 app.get('/', async (_, res) => {
 
-    // Initiate an update on startup so that route '/ping/' will not broadcast
-    // (in case FreshPing/Heroku restarts)
+    // Initiate an update on startup so that route '/ping/' will not broadcast (in case FreshPing/Heroku restarts)
     res.redirect('/manual-update-local-data');
 
 });
 
-// This route is used for the Webhook.
-// The purpose of middleware is to... 
-//       1) validate the request is from an offical LINE server (not fraud)
-//       2) parse the webhook event object
-app.post('/webhook', line.middleware(middlewareConfig), async (req, res) => {
-    const events = req.body.events; // webhook event objects
-    // Process all of the received events asynchronously.
-    const results = await Promise.all(events.map(async (event) => {
-        try {
-            await textEventHandler(event);
-        }
-        catch (err) {
-            if (err instanceof Error) {
-                console.error(err);
-            }
-            // Return an error message.
-            return res.status(500).json({
-                status: 'error',
-            });
-        }
-    }));
-    // Return a successfull message.
-    return res.status(200).json({
-        status: 'success',
-        results,
-    });
-});
-
-// METHOD 2: ----------------------------------------------------------------- I THINK I DID IT.
 app.get('/check-local-data-two', async (_, res) => {
 
     // Get local database value
