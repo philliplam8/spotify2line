@@ -10,11 +10,21 @@ spotify2line is a Line bot channel that will send updates when a new song is add
 ## Getting Started
 
 ### Installation
-Use the package manager [npm](https://www.npmjs.com/) to install 
+To run this application locally...
+1. Clone this project
+    ```console
+    git clone https://github.com/philliplam8/spotify2line.git
+    ```
+2. Use the package manager [npm](https://www.npmjs.com/) to install the following dependencies
+    ```console
+    npm install @line/bot-sdk express cors cookie-parser request fs dotenv
+    ```
+3. Run the application
+    ```console
+    node index.js
+    ```
 
-```console
-npm install @line/bot-sdk express cors cookie-parser request fs dotenv
-```
+Ideally, this application is hosted on a cloud platform (Ex: Heroku). See steps in [Usage](#Usage)
 
 ### Usage
 This project will use the following APIs and free services to run and host the spotify2line application
@@ -33,6 +43,17 @@ This project will use the following APIs and free services to run and host the s
 3. Fill in all required details and create a new Spotify Developer App
 4. Copy the ***Client ID*** and ***Client Secret*** from the Dashboard Overview page and paste into the `.env` file
 
+#### Determine Spotify Playlist ID
+1. Open your desired Spotify Playlist
+2. Right-click on the playlist
+3. Click `Share > Copy link to playlist`
+4. Paste the share link into any text editor
+5. The share link will appear with the following syntax
+    ```
+    https://open.spotify.com/playlist/{playlistId}?si=
+    ```
+6. Copy the `playlistId` value and paste it into the `.env` file 
+
 #### Create a new LINE Channel and Generate Channel Access Token & Channel Secret
 1. Visit the [LINE Developers Messaging API](https://developers.line.biz/en/services/messaging-api/) page 
 2. Click ***Start now***
@@ -41,6 +62,7 @@ This project will use the following APIs and free services to run and host the s
 5. Copy the ***Channel Secret*** and ***Channel Acccess Token*** from the Dashboard Overview page and paste into the `.env` file
 
 #### Create a new Heroku app and deploy app
+1. 
 
 #### Setup FreshPing to periodically ping Heroku app
 1. Visit [Freshping](https://app.freshping.io/) and create a new account
