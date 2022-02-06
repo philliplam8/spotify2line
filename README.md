@@ -9,8 +9,13 @@ spotify2line is a Line bot channel that will send updates when a new song is add
 
 ## Getting Started
 
+### Pre-requisites
+- [x] Spotify account 
+- [x] LINE account
+
 ### Installation
-To run this application locally...
+Ideally, this application is hosted on a cloud platform (Ex: Heroku). 
+
 1. Clone this project
     ```console
     git clone https://github.com/philliplam8/spotify2line.git
@@ -19,12 +24,7 @@ To run this application locally...
     ```console
     npm install @line/bot-sdk express cors cookie-parser request fs dotenv
     ```
-3. Run the application
-    ```console
-    node index.js
-    ```
-
-Ideally, this application is hosted on a cloud platform (Ex: Heroku). See steps in [Usage](#Usage)
+3. Follow steps 1-4 in the [Usage](#Usage) section below to setup the Spotify/Line APIs
 
 ### Usage
 This project will use the following APIs and free services to run and host the spotify2line application
@@ -59,7 +59,8 @@ This project will use the following APIs and free services to run and host the s
 5. Copy the *Channel Secret* and *Channel Acccess Token* from the Dashboard Overview page and paste into the `.env` file
 
 #### 5. Create a new Heroku app and deploy app
-1. Log into [Heroku](https://id.heroku.com/login) with an existing account
+> _Heroku is used here, but feel free to use any hosting method (local, AWS, etc.)_
+1. Visit [Heroku](https://id.heroku.com/login) and create a new account (or sign in with an existing account)
 2. Click *New > Create new app*
 3. Following the instructions to *Deploy using Heroku Git*
 4. Visit the *Settings Tab*
@@ -69,7 +70,7 @@ This project will use the following APIs and free services to run and host the s
 
 
 #### 6. Setup FreshPing to periodically ping Heroku app
-1. Visit [Freshping](https://app.freshping.io/) and create a new account
+1. Visit [Freshping](https://app.freshping.io/) and create a new account (or sign in with an existing account)
 2. Click *+ Add Check*
 3. Enter the Heroku app URL into the *Check URL* field
 4. Set *Check interval = 1 min*
