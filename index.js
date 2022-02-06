@@ -288,8 +288,7 @@ function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, arti
 // Root Route
 app.get('/', async (_, res) => {
 
-    // Initiate an update on startup so that route '/ping/' will not broadcast (in case FreshPing/Heroku restarts)
-    res.redirect('/manual-update-local-data');
+    res.redirect('/broadcast');
 
 });
 
