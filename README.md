@@ -34,8 +34,23 @@ This project will use the following APIs and free services to run and host the s
 - [FreshPing](https://app.freshping.io/)
 
 #### 1. Environment Variables File
-1. A sample environments variable file `.env` has already been created in the root directory of the project
-2. In the following next steps, we will be adding several environment variables into this file
+> ***IMPORTANT:*** *Ensure the .env file is not made available to the public i.e. not uploaded to a public repository (to workaround this, use a .gitignore file). Your tokens and secrets should be kept hidden and treated like a password as they can be misused. If they are compromised, re-issue a new token/secret from the application accordingly.*
+1. Create an environments variable file called `.env` in the root directory of the project
+2. Copy and paste the following into the `.env` file
+    ```.env
+    # LINE
+    CHANNEL_ACCESS_TOKEN=''
+    CHANNEL_SECRET=''
+
+    # SPOTIFY
+    SPOTIFY_CLIENT_ID=''
+    SPOTIFY_CLIENT_SECRET=''
+
+    # SPOTIFY PLAYLIST IDs
+    PLAYLIST_ID_COLLAB = ''
+    PLAYLIST_ID_TEST = ''
+    ```
+3. In the following next steps, we will be adding several environment variables into this file
 
 #### 2. Create a new Spotify Developer App and Generate Client ID & Client Secret
 1. Log into [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/) with your existing Spotify account
