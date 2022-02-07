@@ -1,10 +1,3 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-
-// Import all dependencies, mostly using destructuring for better view.
 const line = require("@line/bot-sdk");
 var request = require('request'); // "Request" library
 
@@ -14,9 +7,6 @@ require('dotenv').config();  // pre-loaded instead using '$ node -r dotenv/confi
 var express = require('express'); // Express web server framework
 var cors = require('cors');
 var cookieParser = require('cookie-parser');
-const res = require("express/lib/response");
-const { redirect, type } = require("express/lib/response");
-const { time } = require("console");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -213,7 +203,6 @@ function readStoredTotalValue(file) {
 function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName) {
 
     // Compose message with Template Literals (Template Strings)
-    const DATA_TESTING = `I added the song "${trackTitle}" by ${artist} at ${addedAtTime}.\n\nThere are now ${total} songs in the playlist. Time Difference = ${timeDifference}`;
     const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
 
     // Create a new message.
