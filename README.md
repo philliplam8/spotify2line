@@ -5,7 +5,13 @@ Currently, Spotify has implemented collaborative playlists, which allow multiple
 spotify2line is a Line bot channel that will send updates when a new song is added into a collaborative playlist.
 
 ## Screenshot
-![spotify2line demo screenshot](./assets/spotify2line-demo-screenshot.png)
+Mobile LINE app 
+- _supports quick reply buttons_
+- <img src='./assets/spotify2line-demo-screenshot-mobile.jpg' alt='spotify2line demo screenshot mobile view' width='300'>
+
+Desktop LINE app 
+- _does not support quick reply buttons_
+- <img src='./assets/spotify2line-demo-screenshot.png' alt='spotify2line demo screenshot desktop view' width='300'>
 
 ## Getting Started
 
@@ -14,8 +20,6 @@ spotify2line is a Line bot channel that will send updates when a new song is add
 - [x] LINE account
 
 ### Installation
-Ideally, this application is hosted on a cloud platform (Ex: Heroku). 
-
 1. Clone this project
     ```console
     git clone https://github.com/philliplam8/spotify2line.git
@@ -90,6 +94,16 @@ This project will use the following APIs and free services to run and host the s
 3. Enter the Heroku app URL into the *Check URL* field
 4. Set *Check interval = 1 min*
 5. Click *Save*
+
+#### 7. Add LINE Channel
+1. Visit [Line Manager](https://manager.line.biz/) 
+2. Click on the Channel created
+3. Click on *Gain Friends > "Add friend" tools"*
+4. Click on *Create a URL*
+5. Visit the URL and add the LINE channel on either desktop or mobile
+
+#### 8. Add song to designated Spotify playlist
+1. Congrats you are done! A LINE chat message will automatically send!
 
 
 ## License
