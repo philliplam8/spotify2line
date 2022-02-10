@@ -1,5 +1,6 @@
 # spotify2line
 
+
 Currently, Spotify has implemented collaborative playlists, which allow multiple users to add songs to a single shared playlist. However, there is no existing notification system in place when someone adds a song. The motivation to create spotify2line was to solve this problem and create a way to send notification updates to a LINE chat when a new song has been added.
 
 spotify2line is a Line bot channel that will send updates when a new song is added into a collaborative playlist.
@@ -54,7 +55,7 @@ This project will use the following APIs and free services to run and host the s
     PLAYLIST_ID_COLLAB = ''
     PLAYLIST_ID_TEST = ''
     ```
-3. In the following next steps, we will be adding several environment variables into this file
+3. In the following steps, we will be adding several environment variables into this file
 
 #### 2. Create a new Spotify Developer App and Generate Client ID & Client Secret
 1. Log into [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/) with your existing Spotify account
@@ -76,6 +77,7 @@ This project will use the following APIs and free services to run and host the s
 3. Login with your existing LINE account
 4. Create a new channel
 5. Copy the *Channel Secret* and *Channel Acccess Token* from the Dashboard Overview page and paste into the `.env` file
+6. Save the `.env` file
 
 #### 5. Create a new Heroku app and deploy app
 > _Heroku is used here, but feel free to use any hosting method (local, AWS, etc.)_
@@ -86,7 +88,6 @@ This project will use the following APIs and free services to run and host the s
 5. Click on *Reveal Config Vars*
 6. Copy and paste all key/values from the `.env` file into the Heroku Config Vars section
 7. Click on *More > View Logs* and ensure the app has been deployed successfully
-
 
 #### 6. Setup FreshPing to periodically ping Heroku app
 1. Visit [Freshping](https://app.freshping.io/) and create a new account (or sign in with an existing account)
@@ -104,7 +105,6 @@ This project will use the following APIs and free services to run and host the s
 
 #### 8. Add song to designated Spotify playlist
 1. Congrats you are done! A LINE chat message will automatically send!
-
 
 ## License
 spotify2line is licensed under the [MIT license](https://github.com/philliplam8/spotify2line/blob/main/LICENSE.txt)
