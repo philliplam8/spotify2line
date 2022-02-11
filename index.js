@@ -35,7 +35,7 @@ var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 // Playlist Data
 const COLLAB_PLAYLIST = process.env.PLAYLIST_ID_COLLAB;
 const TEST_PLAYLIST = process.env.PLAYLIST_ID_TEST;
-const PLAYLIST = COLLAB_PLAYLIST;
+const PLAYLIST = TEST_PLAYLIST;
 
 // Images
 const CONY_IMG = "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102";
@@ -280,6 +280,11 @@ app.get('/', async (_, res) => {
     res.redirect('/broadcast');
 
 });
+
+app.get('/playlist', async (req, res) => {
+
+    res.send(PLAYLIST);
+})
 
 app.get('/check-local-data', async (_, res) => {
 
