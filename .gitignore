@@ -2,4 +2,4 @@
 .env
 .eslintrc
 old
-'node_modules' 
+node_modules
