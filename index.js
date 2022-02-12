@@ -281,7 +281,7 @@ app.get('/', async (_, res) => {
 
 app.get('/playlist', async (req, res) => {
 
-    res.send(PLAYLIST);
+    res.send("Current playlist ID is: " + PLAYLIST);
 })
 
 app.get('/check-local-data', async (_, res) => {
