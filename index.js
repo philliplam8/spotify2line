@@ -284,6 +284,58 @@ app.get('/playlist', async (req, res) => {
     res.send("Current playlist ID is: " + PLAYLIST);
 })
 
+app.get('/test', async (_, res) => {
+
+    // Create promise to grab Spotify access token
+    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
+
+        // Promise "Producing Code" (May take some time)
+        request.post(authOptions, function (error, response, body) {
+            console.log("Promise starting...");
+            if (!error && response.statusCode === 200) {
+                var token = body.access_token;
+            };
+            myResolve(token); // if successful
+            myReject(error);  // if error
+        })
+    });
+
+    // Promise "Consuming Code" (Must wait for a fulfilled Promise...
+    console.log("Checking promise fulfillment...");
+    mySpotifyTokenPromise.then(
+
+        // If promise fulfilled...
+        function (token) {
+
+            var playlistOptions = {
+                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+
+            console.log("Sending GET request to Spotify Playlist API...");
+            request.get(playlistOptions, function (error, response, body) {
+                console.log("inside GET");
+
+
+                // Parse through response
+                var spotifyTotal = (body.tracks.total).toString();
+                console.log("Parsed Spotify Playlist API Response Body");
+                res.status(200).send(spotifyTotal);
+                res.end();
+
+            });
+        },
+
+        // If promise rejected...
+        function (error) {
+            res.send(error);
+        }
+    )
+});
+
 app.get('/check-local-data', async (_, res) => {
 
     // Get local database value
@@ -318,14 +370,12 @@ app.get('/check-local-data', async (_, res) => {
             };
 
             request.get(playlistOptions, function (error, response, body) {
-                if (!error && response.statusCode === 200) {
 
-                    // Parse through response
-                    var spotifyTotal = body.tracks.total;
+                // Parse through response
+                var spotifyTotal = (body.tracks.total).toString();
+                res.send({ storedPlaylistTotalObject, spotifyTotal });
+                res.end();
 
-                    res.send({ storedPlaylistTotalObject, spotifyTotal });
-                    res.end();
-                }
             });
         },
 
