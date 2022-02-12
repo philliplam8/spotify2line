@@ -198,7 +198,11 @@ function readStoredTotalValue(file) {
     return JSON.parse(rawdata);
 }
 
-function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDifference, userName) {
+function constructTextMessage(parsedPlaylist, userName) {
+
+    let trackTitle = parsedPlaylist.trackTitle;
+    let artist = parsedPlaylist.artist;
+    let total = parsedPlaylist.total;
 
     // Compose message with Template Literals (Template Strings)
     const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
@@ -216,7 +220,14 @@ function constructTextMessage(trackTitle, artist, addedAtTime, total, timeDiffer
     return textMessage;
 }
 
-function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, artistSubstring, artistLink, albumLink, userName) {
+function constructQuickReplyButtons(parsedPlaylist, userName) {
+
+    let testMImageURL = parsedPlaylist.testMImageURL;
+    let testSImageURL = parsedPlaylist.testSImageURL;
+    let songLink = parsedPlaylist.songLink;
+    let artistSubstring = parsedPlaylist.artistSubstring;
+    let artistLink = parsedPlaylist.artistLink;
+    let albumLink = parsedPlaylist.albumLink;
 
     // Create a quick reply button (Note: only works on mobile and label allows max 20 char)
     const quickReplyButton = {
@@ -250,7 +261,7 @@ function constructQuickReplyButtons(testMImageURL, testSImageURL, songLink, arti
                     type: "action",
                     action: {
                         type: "uri",
-                        label: "Open Playlist 👁👄👁",
+                        label: "Open Playlist 📃",
                         uri: albumLink
                     },
                     imageUrl: SPOTIFY_LOGO_URL
@@ -279,12 +290,7 @@ app.get('/', async (_, res) => {
 
 });
 
-app.get('/playlist', async (req, res) => {
-
-    res.send("Current playlist ID is: " + PLAYLIST);
-})
-
-app.get('/test', async (_, res) => {
+app.get('/playlist', async (_, res) => {
 
     // Create promise to grab Spotify access token
     let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
@@ -321,9 +327,9 @@ app.get('/test', async (_, res) => {
 
 
                 // Parse through response
-                var spotifyTotal = (body.tracks.total).toString();
+                var spotifyResponse = body;
                 console.log("Parsed Spotify Playlist API Response Body");
-                res.status(200).send(spotifyTotal);
+                res.status(200).send({ PLAYLIST, spotifyResponse });
                 res.end();
 
             });
@@ -584,22 +590,9 @@ app.get('/broadcast-override', async (_, res) => {
                 fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
                 // Construct messages
-                const TEXT_MESSAGE = constructTextMessage(
-                    parsedPlaylist.trackTitle,
-                    parsedPlaylist.artist,
-                    parsedPlaylist.addedAtTime,
-                    parsedPlaylist.total,
-                    parsedPlaylist.timeDifference,
-                    userName);
+                const TEXT_MESSAGE = constructTextMessage(parsedPlaylist, userName);
+                const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(parsedPlaylist, userName);
 
-                const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(
-                    parsedPlaylist.testMImageURL,
-                    parsedPlaylist.testSImageURL,
-                    parsedPlaylist.songLink,
-                    parsedPlaylist.artistSubstring,
-                    parsedPlaylist.artistLink,
-                    parsedPlaylist.albumLink,
-                    userName);
                 // Broadcast with SDK client function
                 return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
             });
