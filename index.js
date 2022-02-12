@@ -1,10 +1,10 @@
 const line = require("@line/bot-sdk");
-var request = require('request'); // "Request" library
+var request = require('request');   // "Request" library
 
-const fs = require('fs'); // fs Module to read/write JSON files
-require('dotenv').config();  // pre-loaded instead using '$ node -r dotenv/config app.js'
+const fs = require('fs');           // fs Module to read/write JSON files
+require('dotenv').config();         // pre-loaded instead using '$ node -r dotenv/config app.js'
 
-var express = require('express'); // Express web server framework
+var express = require('express');   // Express web server framework
 var cors = require('cors');
 var cookieParser = require('cookie-parser');
 
@@ -31,11 +31,9 @@ SPOTIFY SECTION
 const SPOTIFY_LOGO_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
 var client_id = process.env.SPOTIFY_CLIENT_ID; // Your client id
 var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
-
-// Playlist Data
 const PLAYLIST = process.env.PLAYLIST_ID;
 
-// Images
+// LINE Images
 const CONY_IMG = "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102";
 
 // your application requests authorization
@@ -145,7 +143,7 @@ function parsePlaylistAPI(body, currentTime) {
                 artist = artist + ", " + nextArtist;
             }
         }
-    };
+    }
 
     // Album Image
     var testMImageURL = lastItem.track.album.images[0].url;
@@ -300,7 +298,7 @@ app.get('/playlist', async (_, res) => {
             console.log("Promise starting...");
             if (!error && response.statusCode === 200) {
                 var token = body.access_token;
-            };
+            }
             myResolve(token); // if successful
             myReject(error);  // if error
         })
@@ -355,7 +353,7 @@ app.get('/check-local-data', async (_, res) => {
         request.post(authOptions, function (error, response, body) {
             if (!error && response.statusCode === 200) {
                 var token = body.access_token;
-            };
+            }
             myResolve(token); // if successful
             myReject(error);  // if error
         })
@@ -426,7 +424,7 @@ app.get('/manual-update-local-data', async (_, res) => {
                     res.end();
                 }
             });
-        };
+        }
     });
 });
 
