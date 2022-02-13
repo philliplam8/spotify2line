@@ -288,6 +288,31 @@ app.get('/', async (_, res) => {
 
 });
 
+app.get('/preview', async (_, res) => {
+    request.post(authOptions, function (error, response, body) {
+        if (!error && response.statusCode === 200) {
+
+            // use the access token to access the Spotify Web API
+            var token = body.access_token;
+
+            var trackOptions = {
+                url: 'https://api.spotify.com/v1/tracks/' + '5i1zAYfkse1KGC4GSRuv8r',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+
+            request.get(trackOptions, function (error, response, body) {
+                if (!error && response.statusCode === 200) {
+                    var previewTrackUrl = body.preview_url;
+                    res.send({ previewTrackUrl });
+                }
+            })
+        }
+    })
+})
+
 app.get('/playlist', async (_, res) => {
 
     // Create promise to grab Spotify access token
