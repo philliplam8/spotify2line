@@ -14,10 +14,10 @@ const clientConfig = {
     channelSecret: process.env.CHANNEL_SECRET,
 };
 
-const middlewareConfig = {
-    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-    channelSecret: process.env.CHANNEL_SECRET || '',
-};
+// const middlewareConfig = {
+//     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
+//     channelSecret: process.env.CHANNEL_SECRET || '',
+// };
 
 const PORT = process.env.PORT || 3000;
 
