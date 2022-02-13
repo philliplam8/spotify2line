@@ -52,8 +52,7 @@ This project will use the following APIs and free services to run and host the s
     SPOTIFY_CLIENT_SECRET=''
 
     # SPOTIFY PLAYLIST IDs
-    PLAYLIST_ID_COLLAB = ''
-    PLAYLIST_ID_TEST = ''
+    PLAYLIST_ID = ''
     ```
 3. In the following steps, we will be adding several environment variables into this file
 
