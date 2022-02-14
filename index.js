@@ -4,9 +4,10 @@ var request = require('request');   // "Request" library
 const fs = require('fs');           // fs Module to read/write JSON files
 require('dotenv').config();         // pre-loaded instead using '$ node -r dotenv/config app.js'
 
-var express = require('express');   // Express web server framework
-var cors = require('cors');
-var cookieParser = require('cookie-parser');
+const express = require('express');   // Express web server framework
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const req = require("express/lib/request");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -116,7 +117,6 @@ function parsePlaylistAPI(body, currentTime) {
     var artistSubstring = shortenArtistName(artist); // used for quick reply
 
     var totalArtists = lastItem.track.artists.length;
-    // console.log({ totalArtists });
 
     // For multiple artists
     if (totalArtists >= 2) {
@@ -152,6 +152,7 @@ function parsePlaylistAPI(body, currentTime) {
     // Links
     var albumLink = body.external_urls.spotify;
     var songLink = lastItem.track.external_urls.spotify;
+    const trackId = songLink.substring(31, 55)
     var artistLink = lastItem.track.artists[0].external_urls.spotify;
 
     // User
@@ -182,6 +183,7 @@ function parsePlaylistAPI(body, currentTime) {
         // Links
         albumLink: albumLink,
         songLink: songLink,
+        trackId: trackId,
         artistLink: artistLink,
 
         // User
@@ -275,6 +277,27 @@ function constructQuickReplyButtons(parsedPlaylist, userName) {
     return quickReplyButton;
 }
 
+function constructAudioMessage(previewTrackUrl) {
+
+    const audioMessage = {
+        type: "audio",
+        originalContentUrl: previewTrackUrl,
+        duration: 30000,
+    }
+
+    return audioMessage;
+}
+
+function getSpotifyToken() {
+    request.post(authOptions, function (error, response, body) {
+        if (!error && response.statusCode === 200) {
+            var token = body.access_token;
+            // console.log(typeof (token), token);
+            return token;
+        }
+    })
+}
+
 /********************************************************************
 
  APP ROUTES
@@ -286,9 +309,12 @@ app.get('/', async (_, res) => {
 
     res.redirect('/broadcast');
 
+
 });
 
-app.get('/preview', async (_, res) => {
+app.get('/preview/', async (req, res) => {
+    const trackId = req.query.id;
+
     request.post(authOptions, function (error, response, body) {
         if (!error && response.statusCode === 200) {
 
@@ -296,7 +322,7 @@ app.get('/preview', async (_, res) => {
             var token = body.access_token;
 
             var trackOptions = {
-                url: 'https://api.spotify.com/v1/tracks/' + '5i1zAYfkse1KGC4GSRuv8r',
+                url: 'https://api.spotify.com/v1/tracks/' + trackId,
                 headers: {
                     'Authorization': 'Bearer ' + token
                 },
@@ -306,7 +332,11 @@ app.get('/preview', async (_, res) => {
             request.get(trackOptions, function (error, response, body) {
                 if (!error && response.statusCode === 200) {
                     var previewTrackUrl = body.preview_url;
-                    res.send({ previewTrackUrl });
+
+                    // Construct LINE audio message type
+                    const audioMessage = constructAudioMessage(previewTrackUrl);
+
+                    return client.broadcast([audioMessage]);
                 }
             })
         }
@@ -616,8 +646,197 @@ app.get('/broadcast-override', async (_, res) => {
                 const TEXT_MESSAGE = constructTextMessage(parsedPlaylist, userName);
                 const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(parsedPlaylist, userName);
 
+                var trackOptions = {
+                    url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    json: true
+                };
+
+                request.get(trackOptions, function (error, response, body) {
+                    if (!error && response.statusCode === 200) {
+                        var previewTrackUrl = body.preview_url;
+
+                        // Construct LINE audio message type
+                        const audioMessage = constructAudioMessage(previewTrackUrl);
+
+                        const bubbleMessage = {
+                            type: 'flex',
+                            altText: 'this is a flex message',
+                            contents: {
+                                type: 'bubble',
+                                size: 'giga',
+                                body: {
+                                    type: 'box',
+                                    layout: 'vertical',
+                                    spacing: 'xl',
+                                    contents: [
+                                        {
+                                            type: 'image',
+                                            url: parsedPlaylist.testMImageURL,
+                                            size: '1000px'
+                                        },
+                                        {
+                                            type: 'text',
+                                            text: '\n' + TEXT_MESSAGE.text + '\n',
+                                            wrap: true,
+                                            gravity: 'center'
+                                        },
+                                        {
+                                            type: 'box',
+                                            layout: 'vertical',
+                                            contents: [
+                                                {
+                                                    type: 'box',
+                                                    layout: 'horizontal',
+                                                    spacing: 'md',
+                                                    contents: [
+                                                        {
+                                                            type: 'button',
+                                                            style: 'primary',
+                                                            action: {
+                                                                type: 'uri',
+                                                                label: 'Check out song! 🎵',
+                                                                uri: parsedPlaylist.songLink
+                                                            }
+                                                        },
+                                                        {
+                                                            type: 'button',
+                                                            style: 'secondary',
+                                                            action: {
+                                                                type: 'uri',
+                                                                label: parsedPlaylist.artistSubstring,
+                                                                uri: parsedPlaylist.artistLink
+                                                            },
+                                                            adjustMode: 'shrink-to-fit'
+                                                        }
+                                                    ],
+                                                    paddingAll: '10px'
+                                                },
+                                                {
+                                                    type: 'button',
+                                                    style: 'link',
+                                                    action: {
+                                                        type: 'uri',
+                                                        label: 'Open Playlist 📃',
+                                                        uri: parsedPlaylist.albumLink
+                                                    }
+                                                    
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    paddingAll: '10px'
+                                }
+                            }
+                        }
+
+
+                        const bubbleMessage2 = {
+                            "type": "flex",
+                            "altText": "予約票", //Reservation
+                            "contents": {
+                                "type": "bubble",
+                                "body": {
+                                    "type": "box",
+                                    "layout": "vertical",
+                                    "spacing": "xl",
+                                    "contents": [
+                                        {
+                                            "type": "text",
+                                            "text": "予約票", //Reservation
+                                            "align": "center",
+                                            "size": "xl",
+                                            "color": "#1DB446"
+                                        },
+                                        {
+                                            "type": "separator"
+                                        },
+                                        {
+                                            "type": "box",
+                                            "layout": "horizontal",
+                                            "contents": [
+                                                {
+                                                    "type": "box",
+                                                    "layout": "vertical",
+                                                    "flex": 8,
+                                                    "spacing": "sm",
+                                                    "contents": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "10年後の仕事図鑑",  // Book title (The map of professions for 10 years later)
+                                                            "weight": "bold"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": "順番：191/233", // Order
+                                                            "size": "xs",
+                                                            "color": "#aaaaaa"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "button",
+                                                    "style": "primary",
+                                                    "color": "#ff0000",
+                                                    "flex": 2,
+                                                    "height": "sm",
+                                                    "action": {
+                                                        "type": "postback",
+                                                        "label": "X",
+                                                        "displayText": "10年後の仕事図鑑をキャンセル",   // Cancel the book (The map of professions for 10 years later)
+                                                        "data": "{\"_type\":\"intent\",\"intent\":{\"name\":\"cancel-reservation\",\"parameters\":{\"reservation_number\":\"1 \"}}}"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+
+                        const imageMapMessage = {
+                            "type": "imagemap",
+                            "baseUrl": parsedPlaylist.testMImageURL + '?_ignored=',
+                            "altText": "This is an imagemap",
+                            "baseSize": {
+                                "width": 2040,
+                                "height": 2040
+                            },
+                            "video": {
+                                "originalContentUrl": previewTrackUrl,
+                                "previewImageUrl": parsedPlaylist.testMImageURL + '?_ignored=',
+                                "area": {
+                                    "x": 0,
+                                    "y": 0,
+                                    "width": 585,
+                                    "height": 585
+                                }
+                            },
+                            "actions": [
+                                {
+                                    "type": "message",
+                                    "text": "Hello",
+                                    "area": {
+                                        "x": 520,
+                                        "y": 586,
+                                        "width": 520,
+                                        "height": 454
+                                    }
+                                }
+                            ]
+                        }
+
+                        // return client.broadcast([bubbleMessage]);
+                        return client.broadcast([bubbleMessage, audioMessage]);
+
+                        // return client.broadcast([TEXT_MESSAGE, audioMessage, QUICK_REPLY_BUTTONS]);
+                    }
+                })
+
                 // Broadcast with SDK client function
-                return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
+                // return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
             });
         });
     });
