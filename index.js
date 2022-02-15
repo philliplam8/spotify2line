@@ -288,12 +288,39 @@ function constructAudioMessage(previewTrackUrl) {
     return audioMessage;
 }
 
-function getSpotifyToken() {
-    request.post(authOptions, function (error, response, body) {
+function makeSpotifyTokenPromise() {
+
+    return new Promise(function (resolve, reject) {
+
+        request.post(authOptions, function (error, response, body) {
+            if (!error && response.statusCode === 200) {
+                var token = body.access_token;
+                // console.log(typeof (token), token);
+                resolve(token);
+            }
+
+            reject(error);
+        })
+    });
+}
+
+function sendPreviewTrack(token, trackId) {
+    var trackOptions = {
+        url: 'https://api.spotify.com/v1/tracks/' + trackId,
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        json: true
+    };
+
+    request.get(trackOptions, function (error, response, body) {
         if (!error && response.statusCode === 200) {
-            var token = body.access_token;
-            // console.log(typeof (token), token);
-            return token;
+            var previewTrackUrl = body.preview_url;
+
+            // Construct LINE audio message type
+            const audioMessage = constructAudioMessage(previewTrackUrl);
+
+            return client.broadcast([audioMessage]);
         }
     })
 }
@@ -305,42 +332,28 @@ function getSpotifyToken() {
  *******************************************************************/
 
 // Root Route
-app.get('/', async (_, res) => {
+app.get('/', (_, res) => {
 
     res.redirect('/broadcast');
 
 
 });
 
+// app.get('/token', async (req, res) => {
+
+//     makeSpotifyTokenPromise().then(function (token) {
+//         res.send(token);
+//     });
+
+// })
+
 app.get('/preview/', async (req, res) => {
     const trackId = req.query.id;
 
-    request.post(authOptions, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
+    makeSpotifyTokenPromise().then(function (token) {
+        sendPreviewTrack(token, trackId);
+    });
 
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-
-            var trackOptions = {
-                url: 'https://api.spotify.com/v1/tracks/' + trackId,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            request.get(trackOptions, function (error, response, body) {
-                if (!error && response.statusCode === 200) {
-                    var previewTrackUrl = body.preview_url;
-
-                    // Construct LINE audio message type
-                    const audioMessage = constructAudioMessage(previewTrackUrl);
-
-                    return client.broadcast([audioMessage]);
-                }
-            })
-        }
-    })
 })
 
 app.get('/playlist', async (_, res) => {
@@ -699,7 +712,7 @@ app.get('/broadcast-override', async (_, res) => {
                                                                 type: 'uri',
                                                                 label: 'Check out song! 🎵',
                                                                 uri: parsedPlaylist.songLink
-                                                            }
+                                                            },
                                                         },
                                                         {
                                                             type: 'button',
@@ -722,76 +735,12 @@ app.get('/broadcast-override', async (_, res) => {
                                                         label: 'Open Playlist 📃',
                                                         uri: parsedPlaylist.albumLink
                                                     }
-                                                    
+
                                                 }
                                             ]
                                         }
                                     ],
                                     paddingAll: '10px'
-                                }
-                            }
-                        }
-
-
-                        const bubbleMessage2 = {
-                            "type": "flex",
-                            "altText": "予約票", //Reservation
-                            "contents": {
-                                "type": "bubble",
-                                "body": {
-                                    "type": "box",
-                                    "layout": "vertical",
-                                    "spacing": "xl",
-                                    "contents": [
-                                        {
-                                            "type": "text",
-                                            "text": "予約票", //Reservation
-                                            "align": "center",
-                                            "size": "xl",
-                                            "color": "#1DB446"
-                                        },
-                                        {
-                                            "type": "separator"
-                                        },
-                                        {
-                                            "type": "box",
-                                            "layout": "horizontal",
-                                            "contents": [
-                                                {
-                                                    "type": "box",
-                                                    "layout": "vertical",
-                                                    "flex": 8,
-                                                    "spacing": "sm",
-                                                    "contents": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "10年後の仕事図鑑",  // Book title (The map of professions for 10 years later)
-                                                            "weight": "bold"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "順番：191/233", // Order
-                                                            "size": "xs",
-                                                            "color": "#aaaaaa"
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "button",
-                                                    "style": "primary",
-                                                    "color": "#ff0000",
-                                                    "flex": 2,
-                                                    "height": "sm",
-                                                    "action": {
-                                                        "type": "postback",
-                                                        "label": "X",
-                                                        "displayText": "10年後の仕事図鑑をキャンセル",   // Cancel the book (The map of professions for 10 years later)
-                                                        "data": "{\"_type\":\"intent\",\"intent\":{\"name\":\"cancel-reservation\",\"parameters\":{\"reservation_number\":\"1 \"}}}"
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    ]
                                 }
                             }
                         }
@@ -830,8 +779,6 @@ app.get('/broadcast-override', async (_, res) => {
 
                         // return client.broadcast([bubbleMessage]);
                         return client.broadcast([bubbleMessage, audioMessage]);
-
-                        // return client.broadcast([TEXT_MESSAGE, audioMessage, QUICK_REPLY_BUTTONS]);
                     }
                 })
 
