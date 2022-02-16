@@ -332,6 +332,27 @@ function makeSpotifyPlaylistApiBodyPromise(token, playlistId) {
     });
 }
 
+function makeSpotifyUserNamePromise(token, userId) {
+
+    // Determine userName from userId:
+    var userIdOptions = {
+        url: 'https://api.spotify.com/v1/users/' + userId,
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        json: true
+    };
+
+    return new Promise(function (resolve, reject) {
+        request.get(userIdOptions, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                resolve(body.display_name);
+            }
+            reject(error);
+        });
+    });
+}
+
 function callbackSendPreviewTrack(token, trackId) {
 
     var trackOptions = {
@@ -556,21 +577,7 @@ app.get('/broadcast-override', async (_, res) => {
             // PARSE THROUGH PLAYLIST API RESPONSE;
             var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
-            // Determine userName from userId:
-            var userIdOptions = {
-                url: 'https://api.spotify.com/v1/users/' + parsedPlaylist.userId,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            // Grab userName from userId using Spotify Users API
-            request.get(userIdOptions, function (error, response, body) {
-
-                // Parse through response
-                var userName = body.display_name;
-
+            makeSpotifyUserNamePromise(token, parsedPlaylist.userId).then(function (userName) {
                 // Get previous value of Total stored
                 const JSON_FILE = 'total.json';
                 let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
@@ -675,9 +682,9 @@ app.get('/broadcast-override', async (_, res) => {
                         return client.broadcast([bubbleMessage, audioMessage]);
                     }
                 })
-            });
-        })
-    });
+            })
+        });
+    })
 
     return res.status(200).json({
         status: 'success',
