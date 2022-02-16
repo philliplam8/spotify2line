@@ -303,7 +303,32 @@ function makeSpotifyTokenPromise() {
     });
 }
 
-function sendPreviewTrack(token, trackId) {
+function getSpotifyPlaylistApiBodyPromise(token, playlistId) {
+
+    var playlistOptions = {
+        url: 'https://api.spotify.com/v1/playlists/' + playlistId,
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        json: true
+    };
+
+    return new Promise(function (resolve, reject) {
+
+        console.log("Sending GET request to Spotify Playlist API...");
+        request.get(playlistOptions, function (error, response, body) {
+            if (!error && response.statusCode === 200) {
+                console.log("inside GET");
+                resolve(body);
+            }
+            reject(error);
+
+        })
+    });
+}
+
+function callbackSendPreviewTrack(token, trackId) {
+
     var trackOptions = {
         url: 'https://api.spotify.com/v1/tracks/' + trackId,
         headers: {
@@ -350,7 +375,7 @@ app.get('/preview/', async (req, res) => {
     const trackId = req.query.id;
 
     makeSpotifyTokenPromise().then(function (token) {
-        sendPreviewTrack(token, trackId);
+        callbackSendPreviewTrack(token, trackId);
     });
 
 })
@@ -359,27 +384,10 @@ app.get('/playlist', async (_, res) => {
 
     console.log("Checking promise fulfillment...");
     makeSpotifyTokenPromise().then(function (token) {
-
-        var playlistOptions = {
-            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-            headers: {
-                'Authorization': 'Bearer ' + token
-            },
-            json: true
-        };
-
-        console.log("Sending GET request to Spotify Playlist API...");
-        request.get(playlistOptions, function (error, response, body) {
-            console.log("inside GET");
-
-
-            // Parse through response
-            var spotifyResponse = body;
-            console.log("Parsed Spotify Playlist API Response Body");
-            res.status(200).send({ PLAYLIST, spotifyResponse });
+        getSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+            res.status(200).send({ PLAYLIST, playlistBody });
             res.end();
-
-        });
+        })
     },
 
         // If promise rejected...
