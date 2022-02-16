@@ -295,7 +295,6 @@ function makeSpotifyTokenPromise() {
         request.post(authOptions, function (error, response, body) {
             if (!error && response.statusCode === 200) {
                 var token = body.access_token;
-                // console.log(typeof (token), token);
                 resolve(token);
             }
 
@@ -358,48 +357,30 @@ app.get('/preview/', async (req, res) => {
 
 app.get('/playlist', async (_, res) => {
 
-    // Create promise to grab Spotify access token
-    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
-
-        // Promise "Producing Code" (May take some time)
-        request.post(authOptions, function (error, response, body) {
-            console.log("Promise starting...");
-            if (!error && response.statusCode === 200) {
-                var token = body.access_token;
-            }
-            myResolve(token); // if successful
-            myReject(error);  // if error
-        })
-    });
-
-    // Promise "Consuming Code" (Must wait for a fulfilled Promise...
     console.log("Checking promise fulfillment...");
-    mySpotifyTokenPromise.then(
+    makeSpotifyTokenPromise().then(function (token) {
 
-        // If promise fulfilled...
-        function (token) {
+        var playlistOptions = {
+            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            json: true
+        };
 
-            var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            console.log("Sending GET request to Spotify Playlist API...");
-            request.get(playlistOptions, function (error, response, body) {
-                console.log("inside GET");
+        console.log("Sending GET request to Spotify Playlist API...");
+        request.get(playlistOptions, function (error, response, body) {
+            console.log("inside GET");
 
 
-                // Parse through response
-                var spotifyResponse = body;
-                console.log("Parsed Spotify Playlist API Response Body");
-                res.status(200).send({ PLAYLIST, spotifyResponse });
-                res.end();
+            // Parse through response
+            var spotifyResponse = body;
+            console.log("Parsed Spotify Playlist API Response Body");
+            res.status(200).send({ PLAYLIST, spotifyResponse });
+            res.end();
 
-            });
-        },
+        });
+    },
 
         // If promise rejected...
         function (error) {
@@ -414,42 +395,25 @@ app.get('/check-local-data', async (_, res) => {
     let data = fs.readFileSync('total.json');
     let storedPlaylistTotalObject = JSON.parse(data);
 
-    // Create promise to grab Spotify access token
-    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
+    makeSpotifyTokenPromise().then(function (token) {
 
-        // Promise "Producing Code" (May take some time)
-        request.post(authOptions, function (error, response, body) {
-            if (!error && response.statusCode === 200) {
-                var token = body.access_token;
-            }
-            myResolve(token); // if successful
-            myReject(error);  // if error
-        })
-    });
+        var playlistOptions = {
+            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            json: true
+        };
 
-    // Promise "Consuming Code" (Must wait for a fulfilled Promise...
-    mySpotifyTokenPromise.then(
+        request.get(playlistOptions, function (error, response, body) {
 
-        // If promise fulfilled...
-        function (token) {
+            // Parse through response
+            var spotifyTotal = (body.tracks.total).toString();
+            res.send({ storedPlaylistTotalObject, spotifyTotal });
+            res.end();
 
-            var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            request.get(playlistOptions, function (error, response, body) {
-
-                // Parse through response
-                var spotifyTotal = (body.tracks.total).toString();
-                res.send({ storedPlaylistTotalObject, spotifyTotal });
-                res.end();
-
-            });
-        },
+        });
+    },
 
         // If promise rejected...
         function (error) {
@@ -601,23 +565,8 @@ app.get('/broadcast-override', async (_, res) => {
     // Get the current time the '/broadcast' route was requested
     var currentTime = new Date();
 
-    // Create promise to grab Spotify access token
-    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
-
-        // Promise "Producing Code" (May take some time)
-        request.post(authOptions, function (error, response, body) {
-
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-
-            myResolve(token); // if successful
-            myReject(error);  // if error
-
-        });
-    });
-
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
-    mySpotifyTokenPromise.then(function (token) {
+    makeSpotifyTokenPromise().then(function (token) {
 
         var playlistOptions = {
             url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
