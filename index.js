@@ -205,7 +205,8 @@ function constructTextMessage(parsedPlaylist, userName) {
     let total = parsedPlaylist.total;
 
     // Compose message with Template Literals (Template Strings)
-    const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+    // const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+    const DATA = `"${trackTitle}" by ${artist}`;
 
     // Create a new message.
     const textMessage = {
@@ -283,6 +284,10 @@ function constructAudioMessage(previewTrackUrl) {
         type: "audio",
         originalContentUrl: previewTrackUrl,
         duration: 30000,
+        sender: {
+            name: 'Song Preview 🎧',    // max char limit: 20
+            iconUrl: SPOTIFY_LOGO_URL   // max char limit: 2000 or max size: 1MB
+        }
     }
 
     return audioMessage;
@@ -362,14 +367,6 @@ app.get('/', (_, res) => {
 
 
 });
-
-// app.get('/token', async (req, res) => {
-
-//     makeSpotifyTokenPromise().then(function (token) {
-//         res.send(token);
-//     });
-
-// })
 
 app.get('/preview/', async (req, res) => {
     const trackId = req.query.id;
@@ -555,7 +552,7 @@ app.get('/broadcast-override', async (_, res) => {
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
     makeSpotifyTokenPromise().then(function (token) {
         makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
-            
+
             // PARSE THROUGH PLAYLIST API RESPONSE;
             var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
@@ -621,6 +618,7 @@ app.get('/broadcast-override', async (_, res) => {
                                             type: 'text',
                                             text: '\n' + TEXT_MESSAGE.text + '\n',
                                             wrap: true,
+                                            align: 'center',
                                             gravity: 'center'
                                         },
                                         {
@@ -663,54 +661,20 @@ app.get('/broadcast-override', async (_, res) => {
                                                         uri: parsedPlaylist.albumLink
                                                     }
 
-                                                }
-                                            ]
-                                        }
-                                    ],
+                                                }]
+                                        }],
                                     paddingAll: '10px'
                                 }
+                            },
+                            sender: {
+                                name: userName,
+                                iconUrl: CONY_IMG
                             }
                         }
 
-                        const imageMapMessage = {
-                            "type": "imagemap",
-                            "baseUrl": parsedPlaylist.testMImageURL + '?_ignored=',
-                            "altText": "This is an imagemap",
-                            "baseSize": {
-                                "width": 2040,
-                                "height": 2040
-                            },
-                            "video": {
-                                "originalContentUrl": previewTrackUrl,
-                                "previewImageUrl": parsedPlaylist.testMImageURL + '?_ignored=',
-                                "area": {
-                                    "x": 0,
-                                    "y": 0,
-                                    "width": 585,
-                                    "height": 585
-                                }
-                            },
-                            "actions": [
-                                {
-                                    "type": "message",
-                                    "text": "Hello",
-                                    "area": {
-                                        "x": 520,
-                                        "y": 586,
-                                        "width": 520,
-                                        "height": 454
-                                    }
-                                }
-                            ]
-                        }
-
-                        // return client.broadcast([bubbleMessage]);
                         return client.broadcast([bubbleMessage, audioMessage]);
                     }
                 })
-
-                // Broadcast with SDK client function
-                // return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
             });
         })
     });
