@@ -303,7 +303,7 @@ function makeSpotifyTokenPromise() {
     });
 }
 
-function getSpotifyPlaylistApiBodyPromise(token, playlistId) {
+function makeSpotifyPlaylistApiBodyPromise(token, playlistId) {
 
     var playlistOptions = {
         url: 'https://api.spotify.com/v1/playlists/' + playlistId,
@@ -384,7 +384,7 @@ app.get('/playlist', async (_, res) => {
 
     console.log("Checking promise fulfillment...");
     makeSpotifyTokenPromise().then(function (token) {
-        getSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
             res.status(200).send({ PLAYLIST, playlistBody });
             res.end();
         })
@@ -404,23 +404,11 @@ app.get('/check-local-data', async (_, res) => {
     let storedPlaylistTotalObject = JSON.parse(data);
 
     makeSpotifyTokenPromise().then(function (token) {
-
-        var playlistOptions = {
-            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-            headers: {
-                'Authorization': 'Bearer ' + token
-            },
-            json: true
-        };
-
-        request.get(playlistOptions, function (error, response, body) {
-
-            // Parse through response
-            var spotifyTotal = (body.tracks.total).toString();
+        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+            var spotifyTotal = (playlistBody.tracks.total).toString();
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
-
-        });
+        })
     },
 
         // If promise rejected...
@@ -436,36 +424,27 @@ app.get('/manual-update-local-data', async (_, res) => {
     let data = fs.readFileSync('total.json');
     let storedPlaylistTotalObject = JSON.parse(data);
 
-    request.post(authOptions, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
+    makeSpotifyTokenPromise().then(function (token) {
+        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
 
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
+            // Parse through response
+            var spotifyTotal = playlistBody.tracks.total;
 
-            var playlistOptions = {
-                url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
+            // Update database value to current value
+            storedPlaylistTotalObject.total = spotifyTotal;
+            fs.writeFileSync('total.json', JSON.stringify(storedPlaylistTotalObject));
+            res.send({ storedPlaylistTotalObject, spotifyTotal });
+            res.end();
+        })
+    },
 
-            request.get(playlistOptions, function (error, response, body) {
-                if (!error && response.statusCode === 200) {
-
-                    // Parse through response
-                    var spotifyTotal = body.tracks.total;
-
-                    // Update database value to current value
-                    storedPlaylistTotalObject.total = spotifyTotal;
-                    fs.writeFileSync('total.json', JSON.stringify(storedPlaylistTotalObject));
-
-                    res.send({ storedPlaylistTotalObject, spotifyTotal });
-                    res.end();
-                }
-            });
+        // If promise rejected...
+        function (error) {
+            res.send(error);
         }
-    });
+    )
+
+
 });
 
 // This route is used to broadcast the latest playlist song to all friends
@@ -575,19 +554,10 @@ app.get('/broadcast-override', async (_, res) => {
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
     makeSpotifyTokenPromise().then(function (token) {
-
-        var playlistOptions = {
-            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-            headers: {
-                'Authorization': 'Bearer ' + token
-            },
-            json: true
-        };
-
-        request.get(playlistOptions, function (error, response, body) {
-
+        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+            
             // PARSE THROUGH PLAYLIST API RESPONSE;
-            var parsedPlaylist = parsePlaylistAPI(body, currentTime);
+            var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
             // Determine userName from userId:
             var userIdOptions = {
@@ -742,7 +712,7 @@ app.get('/broadcast-override', async (_, res) => {
                 // Broadcast with SDK client function
                 // return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
             });
-        });
+        })
     });
 
     return res.status(200).json({
