@@ -559,51 +559,14 @@ app.get('/broadcast', async (_, res) => {
     // Get the current time the '/broadcast' route was requested
     var currentTime = new Date();
 
-    // Create promise to grab Spotify access token
-    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
-
-        // Promise "Producing Code" (May take some time)
-        request.post(authOptions, function (error, response, body) {
-
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-
-            myResolve(token); // if successful
-            myReject(error);  // if error
-
-        });
-    });
-
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
-    mySpotifyTokenPromise.then(function (token) {
-
-        var playlistOptions = {
-            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-            headers: {
-                'Authorization': 'Bearer ' + token
-            },
-            json: true
-        };
-
-        request.get(playlistOptions, function (error, response, body) {
+    makeSpotifyTokenPromise().then(function (token) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
-            var parsedPlaylist = parsePlaylistAPI(body, currentTime);
+            var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
-            // Determine userName from userId:
-            var userIdOptions = {
-                url: 'https://api.spotify.com/v1/users/' + parsedPlaylist.userId,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            // Grab userName from userId using Spotify Users API
-            request.get(userIdOptions, function (error, response, body) {
-
-                // Parse through response
-                var userName = body.display_name;
+            makeSpotifyUserNamePromise(token, parsedPlaylist.userId).then(function (userName) {
 
                 // Get previous value of Total stored
                 const JSON_FILE = 'total.json';
@@ -616,25 +579,25 @@ app.get('/broadcast', async (_, res) => {
                     storedPlaylistTotalObject.total = parsedPlaylist.total;
                     fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
-                    // Construct messages
-                    const TEXT_MESSAGE = constructTextMessage(
-                        parsedPlaylist.trackTitle,
-                        parsedPlaylist.artist,
-                        parsedPlaylist.addedAtTime,
-                        parsedPlaylist.total,
-                        parsedPlaylist.timeDifference,
-                        userName);
+                    var trackOptions = {
+                        url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
+                        headers: {
+                            'Authorization': 'Bearer ' + token
+                        },
+                        json: true
+                    };
 
-                    const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(
-                        parsedPlaylist.testMImageURL,
-                        parsedPlaylist.testSImageURL,
-                        parsedPlaylist.songLink,
-                        parsedPlaylist.artistSubstring,
-                        parsedPlaylist.artistLink,
-                        parsedPlaylist.albumLink);
+                    request.get(trackOptions, function (error, response, body) {
+                        if (!error && response.statusCode === 200) {
+                            var previewTrackUrl = body.preview_url;
 
-                    // Broadcast with SDK client function
-                    return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
+                            // Construct LINE audio message type
+                            const audioMessage = constructAudioMessage(previewTrackUrl);
+                            const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
+
+                            return client.broadcast([bubbleMessage, audioMessage]);
+                        }
+                    })
                 }
 
                 // Update database value to current value anyways 
@@ -665,6 +628,7 @@ app.get('/broadcast-override', async (_, res) => {
             var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
             makeSpotifyUserNamePromise(token, parsedPlaylist.userId).then(function (userName) {
+
                 // Get previous value of Total stored
                 const JSON_FILE = 'total.json';
                 let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
@@ -672,8 +636,6 @@ app.get('/broadcast-override', async (_, res) => {
                 // Update database value to current value
                 storedPlaylistTotalObject.total = parsedPlaylist.total;
                 fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
-
-                // Construct messages
 
                 var trackOptions = {
                     url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
@@ -689,7 +651,6 @@ app.get('/broadcast-override', async (_, res) => {
 
                         // Construct LINE audio message type
                         const audioMessage = constructAudioMessage(previewTrackUrl);
-
                         const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
                         return client.broadcast([bubbleMessage, audioMessage]);
