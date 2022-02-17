@@ -7,18 +7,12 @@ require('dotenv').config();         // pre-loaded instead using '$ node -r doten
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const req = require("express/lib/request");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
     channelSecret: process.env.CHANNEL_SECRET,
 };
-
-// const middlewareConfig = {
-//     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-//     channelSecret: process.env.CHANNEL_SECRET || '',
-// };
 
 const PORT = process.env.PORT || 3000;
 
@@ -205,7 +199,8 @@ function constructTextMessage(parsedPlaylist, userName) {
     let total = parsedPlaylist.total;
 
     // Compose message with Template Literals (Template Strings)
-    const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+    // const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+    const DATA = `"${trackTitle}" by ${artist}`;
 
     // Create a new message.
     const textMessage = {
@@ -283,9 +278,106 @@ function constructAudioMessage(previewTrackUrl) {
         type: "audio",
         originalContentUrl: previewTrackUrl,
         duration: 30000,
+        sender: {
+            name: 'Song Preview 🎧',    // max char limit: 20
+            iconUrl: SPOTIFY_LOGO_URL   // max char limit: 2000 or max size: 1MB
+        }
     }
 
     return audioMessage;
+}
+
+function constructBubbleMessage(parsedPlaylist, userName) {
+
+    const bubbleMessage = {
+        type: 'flex',
+        altText: 'this is a flex message',
+        contents: {
+            type: 'bubble',
+            size: 'giga',
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'xl',
+                contents: [
+                    {
+                        type: 'image',
+                        url: parsedPlaylist.testMImageURL,
+                        size: '1000px',
+                        action: {
+                            type: 'uri',
+                            label: 'Check out song! 🎵',
+                            uri: parsedPlaylist.testMImageURL + '?_ignored='
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: '\n' + parsedPlaylist.trackTitle,
+                        size: 'lg',
+                        wrap: true,
+                        align: 'center',
+                        gravity: 'bottom'
+                    },
+                    {
+                        type: 'text',
+                        text: 'by ' + parsedPlaylist.artist + '\n',
+                        size: 'sm',
+                        wrap: true,
+                        align: 'center',
+                        gravity: 'top'
+                    },
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'box',
+                                layout: 'horizontal',
+                                spacing: 'md',
+                                contents: [
+                                    {
+                                        type: 'button',
+                                        style: 'primary',
+                                        action: {
+                                            type: 'uri',
+                                            label: 'Check out song! 🎵',
+                                            uri: parsedPlaylist.songLink
+                                        },
+                                    },
+                                    {
+                                        type: 'button',
+                                        style: 'secondary',
+                                        action: {
+                                            type: 'uri',
+                                            label: parsedPlaylist.artistSubstring,
+                                            uri: parsedPlaylist.artistLink
+                                        },
+                                        adjustMode: 'shrink-to-fit'
+                                    }
+                                ],
+                                paddingAll: '10px'
+                            },
+                            {
+                                type: 'button',
+                                style: 'link',
+                                action: {
+                                    type: 'uri',
+                                    label: 'Open Playlist 📃',
+                                    uri: parsedPlaylist.albumLink
+                                }
+
+                            }]
+                    }],
+                paddingAll: '10px'
+            }
+        },
+        sender: {
+            name: userName,
+            iconUrl: CONY_IMG
+        }
+    }
+
+    return bubbleMessage;
 }
 
 function makeSpotifyTokenPromise() {
@@ -303,7 +395,7 @@ function makeSpotifyTokenPromise() {
     });
 }
 
-function makeSpotifyPlaylistApiBodyPromise(token, playlistId) {
+function makeSpotifyPlaylistBodyPromise(token, playlistId) {
 
     var playlistOptions = {
         url: 'https://api.spotify.com/v1/playlists/' + playlistId,
@@ -324,6 +416,27 @@ function makeSpotifyPlaylistApiBodyPromise(token, playlistId) {
             reject(error);
 
         })
+    });
+}
+
+function makeSpotifyUserNamePromise(token, userId) {
+
+    // Determine userName from userId:
+    var userIdOptions = {
+        url: 'https://api.spotify.com/v1/users/' + userId,
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        json: true
+    };
+
+    return new Promise(function (resolve, reject) {
+        request.get(userIdOptions, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                resolve(body.display_name);
+            }
+            reject(error);
+        });
     });
 }
 
@@ -363,14 +476,6 @@ app.get('/', (_, res) => {
 
 });
 
-// app.get('/token', async (req, res) => {
-
-//     makeSpotifyTokenPromise().then(function (token) {
-//         res.send(token);
-//     });
-
-// })
-
 app.get('/preview/', async (req, res) => {
     const trackId = req.query.id;
 
@@ -384,7 +489,7 @@ app.get('/playlist', async (_, res) => {
 
     console.log("Checking promise fulfillment...");
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
             res.status(200).send({ PLAYLIST, playlistBody });
             res.end();
         })
@@ -404,7 +509,7 @@ app.get('/check-local-data', async (_, res) => {
     let storedPlaylistTotalObject = JSON.parse(data);
 
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
             var spotifyTotal = (playlistBody.tracks.total).toString();
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
@@ -425,7 +530,7 @@ app.get('/manual-update-local-data', async (_, res) => {
     let storedPlaylistTotalObject = JSON.parse(data);
 
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
 
             // Parse through response
             var spotifyTotal = playlistBody.tracks.total;
@@ -454,51 +559,14 @@ app.get('/broadcast', async (_, res) => {
     // Get the current time the '/broadcast' route was requested
     var currentTime = new Date();
 
-    // Create promise to grab Spotify access token
-    let mySpotifyTokenPromise = new Promise(function (myResolve, myReject) {
-
-        // Promise "Producing Code" (May take some time)
-        request.post(authOptions, function (error, response, body) {
-
-            // use the access token to access the Spotify Web API
-            var token = body.access_token;
-
-            myResolve(token); // if successful
-            myReject(error);  // if error
-
-        });
-    });
-
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
-    mySpotifyTokenPromise.then(function (token) {
-
-        var playlistOptions = {
-            url: 'https://api.spotify.com/v1/playlists/' + PLAYLIST,
-            headers: {
-                'Authorization': 'Bearer ' + token
-            },
-            json: true
-        };
-
-        request.get(playlistOptions, function (error, response, body) {
+    makeSpotifyTokenPromise().then(function (token) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
-            var parsedPlaylist = parsePlaylistAPI(body, currentTime);
+            var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
-            // Determine userName from userId:
-            var userIdOptions = {
-                url: 'https://api.spotify.com/v1/users/' + parsedPlaylist.userId,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            // Grab userName from userId using Spotify Users API
-            request.get(userIdOptions, function (error, response, body) {
-
-                // Parse through response
-                var userName = body.display_name;
+            makeSpotifyUserNamePromise(token, parsedPlaylist.userId).then(function (userName) {
 
                 // Get previous value of Total stored
                 const JSON_FILE = 'total.json';
@@ -511,25 +579,25 @@ app.get('/broadcast', async (_, res) => {
                     storedPlaylistTotalObject.total = parsedPlaylist.total;
                     fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
-                    // Construct messages
-                    const TEXT_MESSAGE = constructTextMessage(
-                        parsedPlaylist.trackTitle,
-                        parsedPlaylist.artist,
-                        parsedPlaylist.addedAtTime,
-                        parsedPlaylist.total,
-                        parsedPlaylist.timeDifference,
-                        userName);
+                    var trackOptions = {
+                        url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
+                        headers: {
+                            'Authorization': 'Bearer ' + token
+                        },
+                        json: true
+                    };
 
-                    const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(
-                        parsedPlaylist.testMImageURL,
-                        parsedPlaylist.testSImageURL,
-                        parsedPlaylist.songLink,
-                        parsedPlaylist.artistSubstring,
-                        parsedPlaylist.artistLink,
-                        parsedPlaylist.albumLink);
+                    request.get(trackOptions, function (error, response, body) {
+                        if (!error && response.statusCode === 200) {
+                            var previewTrackUrl = body.preview_url;
 
-                    // Broadcast with SDK client function
-                    return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
+                            // Construct LINE audio message type
+                            const audioMessage = constructAudioMessage(previewTrackUrl);
+                            const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
+
+                            return client.broadcast([bubbleMessage, audioMessage]);
+                        }
+                    })
                 }
 
                 // Update database value to current value anyways 
@@ -554,25 +622,12 @@ app.get('/broadcast-override', async (_, res) => {
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
-            
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+
             // PARSE THROUGH PLAYLIST API RESPONSE;
             var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
-            // Determine userName from userId:
-            var userIdOptions = {
-                url: 'https://api.spotify.com/v1/users/' + parsedPlaylist.userId,
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                json: true
-            };
-
-            // Grab userName from userId using Spotify Users API
-            request.get(userIdOptions, function (error, response, body) {
-
-                // Parse through response
-                var userName = body.display_name;
+            makeSpotifyUserNamePromise(token, parsedPlaylist.userId).then(function (userName) {
 
                 // Get previous value of Total stored
                 const JSON_FILE = 'total.json';
@@ -581,10 +636,6 @@ app.get('/broadcast-override', async (_, res) => {
                 // Update database value to current value
                 storedPlaylistTotalObject.total = parsedPlaylist.total;
                 fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
-
-                // Construct messages
-                const TEXT_MESSAGE = constructTextMessage(parsedPlaylist, userName);
-                const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(parsedPlaylist, userName);
 
                 var trackOptions = {
                     url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
@@ -600,120 +651,14 @@ app.get('/broadcast-override', async (_, res) => {
 
                         // Construct LINE audio message type
                         const audioMessage = constructAudioMessage(previewTrackUrl);
+                        const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
-                        const bubbleMessage = {
-                            type: 'flex',
-                            altText: 'this is a flex message',
-                            contents: {
-                                type: 'bubble',
-                                size: 'giga',
-                                body: {
-                                    type: 'box',
-                                    layout: 'vertical',
-                                    spacing: 'xl',
-                                    contents: [
-                                        {
-                                            type: 'image',
-                                            url: parsedPlaylist.testMImageURL,
-                                            size: '1000px'
-                                        },
-                                        {
-                                            type: 'text',
-                                            text: '\n' + TEXT_MESSAGE.text + '\n',
-                                            wrap: true,
-                                            gravity: 'center'
-                                        },
-                                        {
-                                            type: 'box',
-                                            layout: 'vertical',
-                                            contents: [
-                                                {
-                                                    type: 'box',
-                                                    layout: 'horizontal',
-                                                    spacing: 'md',
-                                                    contents: [
-                                                        {
-                                                            type: 'button',
-                                                            style: 'primary',
-                                                            action: {
-                                                                type: 'uri',
-                                                                label: 'Check out song! 🎵',
-                                                                uri: parsedPlaylist.songLink
-                                                            },
-                                                        },
-                                                        {
-                                                            type: 'button',
-                                                            style: 'secondary',
-                                                            action: {
-                                                                type: 'uri',
-                                                                label: parsedPlaylist.artistSubstring,
-                                                                uri: parsedPlaylist.artistLink
-                                                            },
-                                                            adjustMode: 'shrink-to-fit'
-                                                        }
-                                                    ],
-                                                    paddingAll: '10px'
-                                                },
-                                                {
-                                                    type: 'button',
-                                                    style: 'link',
-                                                    action: {
-                                                        type: 'uri',
-                                                        label: 'Open Playlist 📃',
-                                                        uri: parsedPlaylist.albumLink
-                                                    }
-
-                                                }
-                                            ]
-                                        }
-                                    ],
-                                    paddingAll: '10px'
-                                }
-                            }
-                        }
-
-                        const imageMapMessage = {
-                            "type": "imagemap",
-                            "baseUrl": parsedPlaylist.testMImageURL + '?_ignored=',
-                            "altText": "This is an imagemap",
-                            "baseSize": {
-                                "width": 2040,
-                                "height": 2040
-                            },
-                            "video": {
-                                "originalContentUrl": previewTrackUrl,
-                                "previewImageUrl": parsedPlaylist.testMImageURL + '?_ignored=',
-                                "area": {
-                                    "x": 0,
-                                    "y": 0,
-                                    "width": 585,
-                                    "height": 585
-                                }
-                            },
-                            "actions": [
-                                {
-                                    "type": "message",
-                                    "text": "Hello",
-                                    "area": {
-                                        "x": 520,
-                                        "y": 586,
-                                        "width": 520,
-                                        "height": 454
-                                    }
-                                }
-                            ]
-                        }
-
-                        // return client.broadcast([bubbleMessage]);
                         return client.broadcast([bubbleMessage, audioMessage]);
                     }
                 })
-
-                // Broadcast with SDK client function
-                // return client.broadcast([TEXT_MESSAGE, QUICK_REPLY_BUTTONS]);
-            });
-        })
-    });
+            })
+        });
+    })
 
     return res.status(200).json({
         status: 'success',
