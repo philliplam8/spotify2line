@@ -287,6 +287,99 @@ function constructAudioMessage(previewTrackUrl) {
     return audioMessage;
 }
 
+function constructBubbleMessage(parsedPlaylist, userName) {
+
+    const bubbleMessage = {
+        type: 'flex',
+        altText: 'this is a flex message',
+        contents: {
+            type: 'bubble',
+            size: 'giga',
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'xl',
+                contents: [
+                    {
+                        type: 'image',
+                        url: parsedPlaylist.testMImageURL,
+                        size: '1000px',
+                        action: {
+                            type: 'uri',
+                            label: 'Check out song! 🎵',
+                            uri: parsedPlaylist.testMImageURL + '?_ignored='
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: '\n' + parsedPlaylist.trackTitle,
+                        size: 'lg',
+                        wrap: true,
+                        align: 'center',
+                        gravity: 'bottom'
+                    },
+                    {
+                        type: 'text',
+                        text: 'by ' + parsedPlaylist.artist + '\n',
+                        size: 'sm',
+                        wrap: true,
+                        align: 'center',
+                        gravity: 'top'
+                    },
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'box',
+                                layout: 'horizontal',
+                                spacing: 'md',
+                                contents: [
+                                    {
+                                        type: 'button',
+                                        style: 'primary',
+                                        action: {
+                                            type: 'uri',
+                                            label: 'Check out song! 🎵',
+                                            uri: parsedPlaylist.songLink
+                                        },
+                                    },
+                                    {
+                                        type: 'button',
+                                        style: 'secondary',
+                                        action: {
+                                            type: 'uri',
+                                            label: parsedPlaylist.artistSubstring,
+                                            uri: parsedPlaylist.artistLink
+                                        },
+                                        adjustMode: 'shrink-to-fit'
+                                    }
+                                ],
+                                paddingAll: '10px'
+                            },
+                            {
+                                type: 'button',
+                                style: 'link',
+                                action: {
+                                    type: 'uri',
+                                    label: 'Open Playlist 📃',
+                                    uri: parsedPlaylist.albumLink
+                                }
+
+                            }]
+                    }],
+                paddingAll: '10px'
+            }
+        },
+        sender: {
+            name: userName,
+            iconUrl: CONY_IMG
+        }
+    }
+
+    return bubbleMessage;
+}
+
 function makeSpotifyTokenPromise() {
 
     return new Promise(function (resolve, reject) {
@@ -581,7 +674,6 @@ app.get('/broadcast-override', async (_, res) => {
                 fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
                 // Construct messages
-                const TEXT_MESSAGE = constructTextMessage(parsedPlaylist, userName);
 
                 var trackOptions = {
                     url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
@@ -598,79 +690,7 @@ app.get('/broadcast-override', async (_, res) => {
                         // Construct LINE audio message type
                         const audioMessage = constructAudioMessage(previewTrackUrl);
 
-                        const bubbleMessage = {
-                            type: 'flex',
-                            altText: 'this is a flex message',
-                            contents: {
-                                type: 'bubble',
-                                size: 'giga',
-                                body: {
-                                    type: 'box',
-                                    layout: 'vertical',
-                                    spacing: 'xl',
-                                    contents: [
-                                        {
-                                            type: 'image',
-                                            url: parsedPlaylist.testMImageURL,
-                                            size: '1000px'
-                                        },
-                                        {
-                                            type: 'text',
-                                            text: '\n' + TEXT_MESSAGE.text + '\n',
-                                            wrap: true,
-                                            align: 'center',
-                                            gravity: 'center'
-                                        },
-                                        {
-                                            type: 'box',
-                                            layout: 'vertical',
-                                            contents: [
-                                                {
-                                                    type: 'box',
-                                                    layout: 'horizontal',
-                                                    spacing: 'md',
-                                                    contents: [
-                                                        {
-                                                            type: 'button',
-                                                            style: 'primary',
-                                                            action: {
-                                                                type: 'uri',
-                                                                label: 'Check out song! 🎵',
-                                                                uri: parsedPlaylist.songLink
-                                                            },
-                                                        },
-                                                        {
-                                                            type: 'button',
-                                                            style: 'secondary',
-                                                            action: {
-                                                                type: 'uri',
-                                                                label: parsedPlaylist.artistSubstring,
-                                                                uri: parsedPlaylist.artistLink
-                                                            },
-                                                            adjustMode: 'shrink-to-fit'
-                                                        }
-                                                    ],
-                                                    paddingAll: '10px'
-                                                },
-                                                {
-                                                    type: 'button',
-                                                    style: 'link',
-                                                    action: {
-                                                        type: 'uri',
-                                                        label: 'Open Playlist 📃',
-                                                        uri: parsedPlaylist.albumLink
-                                                    }
-
-                                                }]
-                                        }],
-                                    paddingAll: '10px'
-                                }
-                            },
-                            sender: {
-                                name: userName,
-                                iconUrl: CONY_IMG
-                            }
-                        }
+                        const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
                         return client.broadcast([bubbleMessage, audioMessage]);
                     }
