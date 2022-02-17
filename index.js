@@ -7,18 +7,12 @@ require('dotenv').config();         // pre-loaded instead using '$ node -r doten
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const req = require("express/lib/request");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
     channelSecret: process.env.CHANNEL_SECRET,
 };
-
-// const middlewareConfig = {
-//     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-//     channelSecret: process.env.CHANNEL_SECRET || '',
-// };
 
 const PORT = process.env.PORT || 3000;
 
@@ -308,7 +302,7 @@ function makeSpotifyTokenPromise() {
     });
 }
 
-function makeSpotifyPlaylistApiBodyPromise(token, playlistId) {
+function makeSpotifyPlaylistBodyPromise(token, playlistId) {
 
     var playlistOptions = {
         url: 'https://api.spotify.com/v1/playlists/' + playlistId,
@@ -402,7 +396,7 @@ app.get('/playlist', async (_, res) => {
 
     console.log("Checking promise fulfillment...");
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
             res.status(200).send({ PLAYLIST, playlistBody });
             res.end();
         })
@@ -422,7 +416,7 @@ app.get('/check-local-data', async (_, res) => {
     let storedPlaylistTotalObject = JSON.parse(data);
 
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
             var spotifyTotal = (playlistBody.tracks.total).toString();
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
@@ -443,7 +437,7 @@ app.get('/manual-update-local-data', async (_, res) => {
     let storedPlaylistTotalObject = JSON.parse(data);
 
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
 
             // Parse through response
             var spotifyTotal = playlistBody.tracks.total;
@@ -572,7 +566,7 @@ app.get('/broadcast-override', async (_, res) => {
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
     makeSpotifyTokenPromise().then(function (token) {
-        makeSpotifyPlaylistApiBodyPromise(token, PLAYLIST).then(function (playlistBody) {
+        makeSpotifyPlaylistBodyPromise(token, PLAYLIST).then(function (playlistBody) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
             var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
@@ -588,7 +582,6 @@ app.get('/broadcast-override', async (_, res) => {
 
                 // Construct messages
                 const TEXT_MESSAGE = constructTextMessage(parsedPlaylist, userName);
-                const QUICK_REPLY_BUTTONS = constructQuickReplyButtons(parsedPlaylist, userName);
 
                 var trackOptions = {
                     url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
