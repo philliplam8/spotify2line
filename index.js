@@ -440,6 +440,27 @@ function makeSpotifyUserNamePromise(token, userId) {
     });
 }
 
+function makeSpotifyTrackPromise(token, trackId) {
+
+    var trackOptions = {
+        url: 'https://api.spotify.com/v1/tracks/' + trackId,
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        json: true
+    };
+
+    return new Promise(function (resolve, reject) {
+        request.get(trackOptions, function (error, response, body) {
+            if (!error && response.statusCode === 200) {
+                var previewTrackUrl = body.preview_url;
+                resolve(previewTrackUrl);
+            }
+            reject(error);
+        });
+    })
+}
+
 function callbackSendPreviewTrack(token, trackId) {
 
     var trackOptions = {
@@ -579,24 +600,13 @@ app.get('/broadcast', async (_, res) => {
                     storedPlaylistTotalObject.total = parsedPlaylist.total;
                     fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
-                    var trackOptions = {
-                        url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
-                        headers: {
-                            'Authorization': 'Bearer ' + token
-                        },
-                        json: true
-                    };
+                    // Spotify 30 Second Preview
+                    makeSpotifyTrackPromise(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
+                        // Construct LINE audio message type
+                        const audioMessage = constructAudioMessage(previewTrackUrl);
+                        const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
-                    request.get(trackOptions, function (error, response, body) {
-                        if (!error && response.statusCode === 200) {
-                            var previewTrackUrl = body.preview_url;
-
-                            // Construct LINE audio message type
-                            const audioMessage = constructAudioMessage(previewTrackUrl);
-                            const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
-
-                            return client.broadcast([bubbleMessage, audioMessage]);
-                        }
+                        return client.broadcast([bubbleMessage, audioMessage]);
                     })
                 }
 
@@ -637,25 +647,15 @@ app.get('/broadcast-override', async (_, res) => {
                 storedPlaylistTotalObject.total = parsedPlaylist.total;
                 fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
 
-                var trackOptions = {
-                    url: 'https://api.spotify.com/v1/tracks/' + parsedPlaylist.trackId,
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    },
-                    json: true
-                };
+                // Spotify 30 Second Preview
+                makeSpotifyTrackPromise(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
+                    // Construct LINE audio message type
+                    const audioMessage = constructAudioMessage(previewTrackUrl);
+                    const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
-                request.get(trackOptions, function (error, response, body) {
-                    if (!error && response.statusCode === 200) {
-                        var previewTrackUrl = body.preview_url;
-
-                        // Construct LINE audio message type
-                        const audioMessage = constructAudioMessage(previewTrackUrl);
-                        const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
-
-                        return client.broadcast([bubbleMessage, audioMessage]);
-                    }
+                    return client.broadcast([bubbleMessage, audioMessage]);
                 })
+
             })
         });
     })
