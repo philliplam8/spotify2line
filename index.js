@@ -7,6 +7,7 @@ require('dotenv').config();         // pre-loaded instead using '$ node -r doten
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const e = require("express");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -95,8 +96,8 @@ const NO_PREVIEW_MESSAGE = {
     }
 }
 
-// LINE quick reply message badge label only allows >= 20 characters
-function shortenArtistName(name) {
+// LINE labels only allow <= 20 characters
+function shortenToTwentyChar(name) {
     // Show full artist name if less than 20
     if (name.length <= 20) {
         return name;
@@ -124,7 +125,7 @@ function parsePlaylistAPI(body, currentTime) {
 
     // Artist
     var artist = lastItem.track.artists[0].name;
-    var artistSubstring = shortenArtistName(artist); // used for quick reply
+    var artistSubstring = shortenToTwentyChar(artist); // used for quick reply
 
     var totalArtists = lastItem.track.artists.length;
 
@@ -221,7 +222,7 @@ function parseAlteredPlaylistAPI(body, currentTime) {
 
     // Artist
     var artist = lastItem.track.artists[0].name;
-    var artistSubstring = shortenArtistName(artist); // used for quick reply
+    var artistSubstring = shortenToTwentyChar(artist); // used for quick reply
 
     var totalArtists = lastItem.track.artists.length;
 
@@ -303,9 +304,15 @@ function parseAlteredPlaylistAPI(body, currentTime) {
 }
 
 
-function readStoredTotalValue(file) {
-    let rawdata = fs.readFileSync(file);
+function readStoredTotalValue() {
+    const JSON_FILE = 'total.json';
+    let rawdata = fs.readFileSync(JSON_FILE);
     return JSON.parse(rawdata);
+}
+
+function updatedStoredTotalValue(updatedValue) {
+    const JSON_FILE = 'total.json';
+    fs.writeFileSync(JSON_FILE, JSON.stringify(updatedValue));
 }
 
 function constructTextMessage(parsedPlaylist, userName) {
@@ -323,7 +330,7 @@ function constructTextMessage(parsedPlaylist, userName) {
         type: 'text',
         text: DATA,
         sender: {
-            name: userName, // Sender will appear in the notification push and in the convo
+            name: shortenToTwentyChar(userName), // Sender will appear in the notification push and in the convo
             iconUrl: CONY_IMG
         }
     };
@@ -380,7 +387,7 @@ function constructQuickReplyButtons(parsedPlaylist, userName) {
             ]
         },
         sender: {
-            name: userName,
+            name: shortenToTwentyChar(userName),
             iconUrl: CONY_IMG
         }
     }
@@ -488,7 +495,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
             }
         },
         sender: {
-            name: userName,
+            name: shortenToTwentyChar(userName),
             iconUrl: CONY_IMG
         }
     }
@@ -605,6 +612,26 @@ function callbackSendPreviewTrack(token, trackId, res) {
     })
 }
 
+function sendBroadcastMessage(token, parsedPlaylist, userName) {
+
+    const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
+
+    // Spotify 30 Second Preview
+    makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
+
+        // Only send audio message if Spotify has an existing preview Track URL
+        if (previewTrackUrl) {
+            // Construct LINE audio message type
+            const audioMessage = constructAudioMessage(previewTrackUrl);
+            return client.broadcast([bubbleMessage, audioMessage]);
+
+        } else {
+            return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
+        }
+
+    })
+}
+
 /********************************************************************
 
  APP ROUTES
@@ -672,13 +699,12 @@ app.get('/playlist', async (_, res) => {
 
 app.get('/check-local-data', async (_, res) => {
 
-    // Get local database value
-    let data = fs.readFileSync('total.json');
-    let storedPlaylistTotalObject = JSON.parse(data);
+    // Get previous value of Total stored
+    const storedPlaylistTotalObject = readStoredTotalValue();
 
     makePromiseForSpotifyToken().then(function (token) {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
-            var spotifyTotal = (playlistBody.tracks.total).toString();
+            var spotifyTotal = playlistBody.tracks.total;
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
         })
@@ -693,9 +719,8 @@ app.get('/check-local-data', async (_, res) => {
 
 app.get('/manual-update-local-data', async (_, res) => {
 
-    // Get local database value
-    let data = fs.readFileSync('total.json');
-    let storedPlaylistTotalObject = JSON.parse(data);
+    // Get previous value of Total stored
+    let storedPlaylistTotalObject = readStoredTotalValue();
 
     makePromiseForSpotifyToken().then(function (token) {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
@@ -704,20 +729,17 @@ app.get('/manual-update-local-data', async (_, res) => {
             var spotifyTotal = playlistBody.tracks.total;
 
             // Update database value to current value
-            storedPlaylistTotalObject.total = spotifyTotal;
-            fs.writeFileSync('total.json', JSON.stringify(storedPlaylistTotalObject));
+            updatedStoredTotalValue(spotifyTotal);
+            storedPlaylistTotalObject = readStoredTotalValue();
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
         })
     },
-
         // If promise rejected...
         function (error) {
             res.send(error);
         }
     )
-
-
 });
 
 // This route is used to broadcast the latest playlist song to all friends
@@ -732,37 +754,44 @@ app.get('/broadcast', async (_, res) => {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
-            var parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
-            // console.log(parsedPlaylist.next)
+            let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
-            makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+            // Get previous value of Total stored
+            let storedPlaylistTotalObject = readStoredTotalValue();
 
-                // Get previous value of Total stored
-                const JSON_FILE = 'total.json';
-                let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
+            // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
+            // so we will check if the total tracks to determine where the last track is located
+            if (parsedPlaylist.total > 100) {
 
-                // Only broadcast if song was added within a minute of ping and new song was added
-                if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
+                // Will need to call the Spotify Playlist API again but view the last "page"
+                const offset = 100 * Math.floor(parsedPlaylist.total / 100);
+                const alteredPlaylistId = PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
+                makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
+                    parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
-                    // Update database value to current value
-                    storedPlaylistTotalObject.total = parsedPlaylist.total;
-                    fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
+                    makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+                        // Only broadcast if song was added within a minute of ping and new song was added
+                        if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
+                            sendBroadcastMessage(token, parsedPlaylist, userName);
+                        }
+                    });
+                })
+            }
 
-                    // Spotify 30 Second Preview
-                    makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
-                        // Construct LINE audio message type
-                        const audioMessage = constructAudioMessage(previewTrackUrl);
-                        const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
+            else {
 
-                        return client.broadcast([bubbleMessage, audioMessage]);
-                    })
-                }
+                makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
 
-                // Update database value to current value anyways 
-                storedPlaylistTotalObject.total = parsedPlaylist.total;
-                fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
-                res.end();
-            });
+                    // Only broadcast if song was added within a minute of ping and new song was added
+                    if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
+                        sendBroadcastMessage(token, parsedPlaylist, userName);
+                    }
+                });
+            }
+
+            // Update database value to current value anyways 
+            storedPlaylistTotalObject.total = parsedPlaylist.total;
+            updatedStoredTotalValue(parsedPlaylist.total);
         });
     });
 
@@ -784,72 +813,36 @@ app.get('/broadcast-override', async (_, res) => {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
             let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
-            console.log("1: ", parsedPlaylist.next);
+
+            // Get previous value of Total stored
+            let storedPlaylistTotalObject = readStoredTotalValue();
 
             // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
             // so we will check if the total tracks to determine where the last track is located
             if (parsedPlaylist.total > 100) {
 
+                // Will need to call the Spotify Playlist API again but view the last "page"
                 const offset = 100 * Math.floor(parsedPlaylist.total / 100);
                 const alteredPlaylistId = PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
-                console.log(alteredPlaylistId);
-
                 makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
                     parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
-                    console.log("2: ", parsedPlaylist.next);
 
                     makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
-
-                        // Get previous value of Total stored
-                        const JSON_FILE = 'total.json';
-                        let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
-
-                        // Update database value to current value
-                        storedPlaylistTotalObject.total = parsedPlaylist.total;
-                        fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
-
-                        // Spotify 30 Second Preview
-                        makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
-
-                            const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
-
-                            // Only send audio message if Spotify has an existing preview Track URL
-                            if (previewTrackUrl) {
-                                // Construct LINE audio message type
-                                const audioMessage = constructAudioMessage(previewTrackUrl);
-                                return client.broadcast([bubbleMessage, audioMessage]);
-                            } else {
-                                return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
-                            }
-                        })
+                        sendBroadcastMessage(token, parsedPlaylist, userName);
                     })
                 })
             }
 
             else {
-
-                console.log("3: ", parsedPlaylist.next);
                 makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
-
-                    // Get previous value of Total stored
-                    const JSON_FILE = 'total.json';
-                    let storedPlaylistTotalObject = readStoredTotalValue(JSON_FILE);
-
-                    // Update database value to current value
-                    storedPlaylistTotalObject.total = parsedPlaylist.total;
-                    fs.writeFileSync(JSON_FILE, JSON.stringify(storedPlaylistTotalObject));
-
-                    // Spotify 30 Second Preview
-                    makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
-                        // Construct LINE audio message type
-                        const audioMessage = constructAudioMessage(previewTrackUrl);
-                        const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
-
-                        return client.broadcast([bubbleMessage, audioMessage]);
-                    })
-
+                    sendBroadcastMessage(token, parsedPlaylist, userName);
                 })
             }
+
+            // Update database value to current value
+            storedPlaylistTotalObject.total = parsedPlaylist.total;
+            updatedStoredTotalValue(parsedPlaylist.total);
+
         });
     })
 
