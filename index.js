@@ -700,6 +700,7 @@ app.get('/check-local-data', async (_, res) => {
 
     // Get previous value of Total stored
     const storedPlaylistTotalObject = readStoredTotalValue();
+    console.log(typeof (storedPlaylistTotalObject));
 
     makePromiseForSpotifyToken().then(function (token) {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
@@ -756,7 +757,7 @@ app.get('/broadcast', async (_, res) => {
             let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
             // Get previous value of Total stored
-            let storedPlaylistTotalObject = readStoredTotalValue();
+            const storedPlaylistTotalObject = readStoredTotalValue();
 
             // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
             // so we will check if the total tracks to determine where the last track is located
@@ -769,10 +770,13 @@ app.get('/broadcast', async (_, res) => {
                     parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
                     makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+
                         // Only broadcast if song was added within a minute of ping and new song was added
-                        if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
+                        if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject != parsedPlaylist.total) {
+
                             sendBroadcastMessage(token, parsedPlaylist, userName);
                         }
+
                     });
                 })
             }
@@ -782,14 +786,13 @@ app.get('/broadcast', async (_, res) => {
                 makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
 
                     // Only broadcast if song was added within a minute of ping and new song was added
-                    if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject.total != parsedPlaylist.total) {
+                    if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject != parsedPlaylist.total) {
                         sendBroadcastMessage(token, parsedPlaylist, userName);
                     }
                 });
             }
 
             // Update database value to current value anyways 
-            storedPlaylistTotalObject.total = parsedPlaylist.total;
             updatedStoredTotalValue(parsedPlaylist.total);
         });
     });
@@ -812,9 +815,6 @@ app.get('/broadcast-override', async (_, res) => {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
             let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
-
-            // Get previous value of Total stored
-            let storedPlaylistTotalObject = readStoredTotalValue();
 
             // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
             // so we will check if the total tracks to determine where the last track is located
@@ -839,7 +839,6 @@ app.get('/broadcast-override', async (_, res) => {
             }
 
             // Update database value to current value
-            storedPlaylistTotalObject.total = parsedPlaylist.total;
             updatedStoredTotalValue(parsedPlaylist.total);
 
         });
