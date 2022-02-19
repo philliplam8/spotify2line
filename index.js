@@ -90,7 +90,11 @@ const NO_PREVIEW_MESSAGE = {
             "productId": "5ac21c46040ab15980c9b442",
             "emojiId": "003"
         }
-    ]
+    ],
+    "sender": {
+        name: 'Song Preview 🎧',    // max char limit: 20
+        iconUrl: SPOTIFY_LOGO_URL   // max char limit: 2000 or max size: 1MB
+    }
 }
 
 // LINE quick reply message badge label only allows >= 20 characters
