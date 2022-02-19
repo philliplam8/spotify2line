@@ -23,7 +23,8 @@ SPOTIFY SECTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 // SPOTIFY VARIABLES ----------------------------------------------------------
-const SPOTIFY_LOGO_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
+const SPOTIFY_LOGO_ICON_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
+const SPOTIFY_LOGO_URL = 'https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_Green.png';
 var client_id = process.env.SPOTIFY_CLIENT_ID; // Your client id
 var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
 const PLAYLIST = process.env.PLAYLIST_ID;
@@ -58,6 +59,22 @@ LINE SECTION
 // Create a new LINE SDK client.
 const client = new line.Client(clientConfig);
 
+const NO_PREVIEW_MESSAGE = {
+    "type": "text",
+    "text": "Sorry, a preview does not exist for this song $",
+    "emojis": [
+        {
+            "index": 46,
+            "productId": "5ac21c46040ab15980c9b442",
+            "emojiId": "003"
+        }
+    ],
+    "sender": {
+        name: 'Song Preview 🎧',    // max char limit: 20
+        iconUrl: SPOTIFY_LOGO_ICON_URL   // max char limit: 2000 or max size: 1MB
+    }
+}
+
 // Function handler to receive the text (for webhook).
 const textEventHandler = async (event) => {
     // Process all variables here.
@@ -78,22 +95,6 @@ const textEventHandler = async (event) => {
     // Reply to the user.
     await client.replyMessage(replyToken, response);
 };
-
-const NO_PREVIEW_MESSAGE = {
-    "type": "text",
-    "text": "Sorry, a preview does not exist for this song $",
-    "emojis": [
-        {
-            "index": 46,
-            "productId": "5ac21c46040ab15980c9b442",
-            "emojiId": "003"
-        }
-    ],
-    "sender": {
-        name: 'Song Preview 🎧',    // max char limit: 20
-        iconUrl: SPOTIFY_LOGO_URL   // max char limit: 2000 or max size: 1MB
-    }
-}
 
 // LINE labels only allow <= 20 characters
 function shortenToTwentyChar(name) {
@@ -371,7 +372,7 @@ function constructQuickReplyButtons(parsedPlaylist, userName) {
                         label: artistSubstring,
                         uri: artistLink
                     },
-                    imageUrl: SPOTIFY_LOGO_URL
+                    imageUrl: SPOTIFY_LOGO_ICON_URL
                 },
                 {
                     // Quick reply to view playlist in Spotify
@@ -381,7 +382,7 @@ function constructQuickReplyButtons(parsedPlaylist, userName) {
                         label: "Open Playlist 📃",
                         uri: albumLink
                     },
-                    imageUrl: SPOTIFY_LOGO_URL
+                    imageUrl: SPOTIFY_LOGO_ICON_URL
                 }
             ]
         },
@@ -402,7 +403,7 @@ function constructAudioMessage(previewTrackUrl) {
         duration: 30000,
         sender: {
             name: 'Song Preview 🎧',    // max char limit: 20
-            iconUrl: SPOTIFY_LOGO_URL   // max char limit: 2000 or max size: 1MB
+            iconUrl: SPOTIFY_LOGO_ICON_URL   // max char limit: 2000 or max size: 1MB
         }
     }
 
@@ -420,17 +421,29 @@ function constructBubbleMessage(parsedPlaylist, userName) {
             body: {
                 type: 'box',
                 layout: 'vertical',
-                spacing: 'xl',
+                spacing: 'none',
                 contents: [
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'image',
+                                url: SPOTIFY_LOGO_URL,                                
+                            }
+                        ],
+                        height: '70px',
+                        position: 'relative',
+                        offsetBottom: '20px'
+                    },
                     {
                         type: 'image',
                         url: parsedPlaylist.testMImageURL,
                         size: '1000px',
                         action: {
                             type: 'uri',
-                            label: 'Check out song! 🎵',
                             uri: parsedPlaylist.testMImageURL + '?_ignored='
-                        }
+                        },
                     },
                     {
                         type: 'text',
@@ -468,7 +481,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
                                     },
                                     {
                                         type: 'button',
-                                        style: 'secondary',
+                                        style: 'primary',
                                         action: {
                                             type: 'uri',
                                             label: parsedPlaylist.artistSubstring,
@@ -487,7 +500,6 @@ function constructBubbleMessage(parsedPlaylist, userName) {
                                     label: 'Open Playlist 📃',
                                     uri: 'https://open.spotify.com/playlist/' + PLAYLIST
                                 }
-
                             }]
                     }],
                 paddingAll: '10px'
