@@ -82,10 +82,10 @@ const textEventHandler = async (event) => {
 
 const NO_PREVIEW_MESSAGE = {
     "type": "text",
-    "text": "Sorry, no Spotify preview url available for this song $",
+    "text": "Sorry, a preview does not exist for this song $",
     "emojis": [
         {
-            "index": 54,
+            "index": 46,
             "productId": "5ac21c46040ab15980c9b442",
             "emojiId": "003"
         }
