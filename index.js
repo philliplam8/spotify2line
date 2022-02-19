@@ -7,7 +7,6 @@ require('dotenv').config();         // pre-loaded instead using '$ node -r doten
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const e = require("express");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -414,7 +413,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
 
     const bubbleMessage = {
         type: 'flex',
-        altText: "You're doing great, sweetie",
+        altText: "A new song has been added",
         contents: {
             type: 'bubble',
             size: 'giga',
