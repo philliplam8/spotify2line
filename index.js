@@ -527,8 +527,6 @@ function makePromiseForSpotifyPlaylist(token, playlistId) {
         json: true
     };
 
-    console.log(playlistOptions.url);
-
     return new Promise(function (resolve, reject) {
 
         request.get(playlistOptions, function (error, response, body) {
@@ -700,7 +698,6 @@ app.get('/check-local-data', async (_, res) => {
 
     // Get previous value of Total stored
     const storedPlaylistTotalObject = readStoredTotalValue();
-    console.log(typeof (storedPlaylistTotalObject));
 
     makePromiseForSpotifyToken().then(function (token) {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
