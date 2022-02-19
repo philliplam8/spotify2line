@@ -7,8 +7,6 @@ require('dotenv').config();         // pre-loaded instead using '$ node -r doten
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const e = require("express");
-const res = require("express/lib/response");
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -814,15 +812,14 @@ app.get('/broadcast-override', async (_, res) => {
                         makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
 
                             const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
-                            client.broadcast([bubbleMessage]);
 
                             // Only send audio message if Spotify has an existing preview Track URL
                             if (previewTrackUrl) {
                                 // Construct LINE audio message type
                                 const audioMessage = constructAudioMessage(previewTrackUrl);
-                                return client.broadcast([audioMessage]);
+                                return client.broadcast([bubbleMessage, audioMessage]);
                             } else {
-                                return client.broadcast([NO_PREVIEW_MESSAGE]);
+                                return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
                             }
                         })
                     })
