@@ -9,12 +9,18 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 // Convert Spotify Preview MP3 to M4A for to support LINE iOS
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath(ffmpegPath);
+// const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+// const ffmpeg = require('fluent-ffmpeg');
+// ffmpeg.setFfmpegPath(ffmpegPath);
 
 // Hosting for M4A files
 const cloudinary = require('cloudinary');
+const { response } = require("express");
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Setup all LINE client and Express configurations.
 const clientConfig = {
@@ -178,6 +184,7 @@ function parsePlaylistAPI(body, currentTime) {
     const trackId = songLink.substring(31, 55)
     var artistLink = lastItem.track.artists[0].external_urls.spotify;
     const next = body.tracks.next;
+    const previewUrl = lastItem.track.preview_url;
 
     // User
     var userId = lastItem.added_by.id;
@@ -210,6 +217,8 @@ function parsePlaylistAPI(body, currentTime) {
         trackId: trackId,
         artistLink: artistLink,
         next: next,
+        previewUrl: previewUrl,
+
         // User
         userId: userId
     };
@@ -275,6 +284,7 @@ function parseAlteredPlaylistAPI(body, currentTime) {
     const trackId = songLink.substring(31, 55)
     var artistLink = lastItem.track.artists[0].external_urls.spotify;
     const next = body.next;
+    const previewUrl = lastItem.track.preview_url;
 
     // User
     var userId = lastItem.added_by.id;
@@ -307,6 +317,7 @@ function parseAlteredPlaylistAPI(body, currentTime) {
         trackId: trackId,
         artistLink: artistLink,
         next: next,
+        previewUrl: previewUrl,
 
         // User
         userId: userId
@@ -333,45 +344,81 @@ function updatedStoredTotalValue(updatedValue) {
 // FFMPEG
 // ****************************************************************************
 
-function convertMp3ToM4a(file, destination, error, progressing, finish) {
+// function convertMp3ToM4a(file, destination, error, progressing, finish) {
 
-    ffmpeg(file)
-        .on('error', (err) => {
-            console.log('An error occurred: ' + err.message);
-            if (error) {
-                error(err.message);
-            }
-        })
-        .on('progress', (progress) => {
-            // console.log(JSON.stringify(progress));
-            console.log('Processing: ' + progress.targetSize + ' KB converted');
-            if (progressing) {
-                progressing(progress.targetSize);
-            }
-        })
-        .on('end', () => {
-            console.log('converting format finished !');
-            if (finish) {
-                finish();
-            }
-        })
-        .save(destination);
-
-}
+//     ffmpeg(file)
+//         .on('error', (err) => {
+//             console.log('An error occurred: ' + err.message);
+//             if (error) {
+//                 error(err.message);
+//             }
+//         })
+//         .on('progress', (progress) => {
+//             // console.log(JSON.stringify(progress));
+//             console.log('Processing: ' + progress.targetSize + ' KB converted');
+//             if (progressing) {
+//                 progressing(progress.targetSize);
+//             }
+//         })
+//         .on('end', () => {
+//             console.log('converting format finished !');
+//             if (finish) {
+//                 finish();
+//             }
+//         })
+//         .save(destination);
+// }
 // this following execution when uncommented will perform the conversion
-const testmp3file = 'https://p.scdn.co/mp3-preview/800317bec6b37104b332c368de58ec61ee826059?cid=6ea7402a7a794840977e45afd9b40177';
 // convertMp3ToM4a(testmp3file, 'test2.m4a', function (errorMessage) {
 // }, null, function () {
 //     console.log("success");
 // });
 
 // ****************************************************************************
-// Cloudinary
+// Cloudinary - File Hosting
 // ****************************************************************************
 
-cloudinary.v2.uploader.upload("test2.m4a",
-  { public_id: "test_audio" }, 
-  function(error, result) {console.log(result); });
+// file = local file or url
+// publicId = choose the publicId value i.e. name in cloudinary's storage
+function cloudinaryUploadAudio(file, publicId) {
+
+    return new Promise(function (resolve, reject) {
+
+        cloudinary.v2.uploader.upload(file,
+            {
+                public_id: publicId,
+                resource_type: 'video',
+                format: 'mp4'
+            },
+            function (err, res) {
+                if (err) return reject(err);
+
+                const songLink = String(res.secure_url);
+                console.log(typeof (songLink), songLink);
+                return resolve(songLink);
+            });
+    })
+}
+
+// cloudinaryUploadAudio('https://p.scdn.co/mp3-preview/d5f1ec3f5a6436cbe8e61d2b5a80dc32860e97f6?cid=6ea7402a7a794840977e45afd9b40177', 'testaudio');
+
+function cloudinaryDeleteAudio(publicId) {
+    cloudinary.v2.uploader.destroy(publicId,
+        { invalidate: true, resource_type: "video" },
+        function (err, res) {
+            console.log(res);
+        }
+    );
+}
+// cloudinaryDeleteAudio('testaudio');
+
+// Check hourly usage limits (free tier = 500 per hour, and refreshes)
+cloudinary.v2.api.resources(
+    function (error, result) {
+        console.log(result.rate_limit_allowed,
+            result.rate_limit_remaining,
+            result.rate_limit_reset_at);
+    });
 
 // ****************************************************************************
 // CONSTRUCT LINE MESSAGE TYPES
@@ -460,7 +507,6 @@ function constructAudioMessage(previewTrackUrl) {
 
     const audioMessage = {
         type: "audio",
-        // originalContentUrl: 'https://res.cloudinary.com/hfburhzk8/video/upload/v1645338326/test_p3lipp.m4a',
         originalContentUrl: previewTrackUrl,
         duration: 30000,
         sender: {
@@ -470,6 +516,7 @@ function constructAudioMessage(previewTrackUrl) {
     }
 
     return audioMessage;
+
 }
 
 function constructBubbleMessage(parsedPlaylist, userName) {
@@ -648,6 +695,7 @@ function makePromiseForSpotifyTrack(token, trackId) {
         request.get(trackOptions, function (error, response, body) {
             if (!error && response.statusCode === 200) {
                 var previewTrackUrl = body.preview_url;
+
                 resolve(previewTrackUrl);
             }
             reject(error);
@@ -688,19 +736,19 @@ function sendBroadcastMessage(token, parsedPlaylist, userName) {
     const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
     // Spotify 30 Second Preview
-    makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
+    let previewTrackUrl = parsedPlaylist.previewUrl;
 
-        // Only send audio message if Spotify has an existing preview Track URL
-        if (previewTrackUrl) {
-            // Construct LINE audio message type
-            const audioMessage = constructAudioMessage(previewTrackUrl);
+    // Only send audio message if Spotify has an existing preview Track URL
+    if (previewTrackUrl) {
+
+        cloudinaryUploadAudio(previewTrackUrl, parsedPlaylist.trackTitle).then(function (updatedUrl) {
+            const audioMessage = constructAudioMessage(updatedUrl);
             return client.broadcast([bubbleMessage, audioMessage]);
+        })
 
-        } else {
-            return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
-        }
-
-    })
+    } else {
+        return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
+    }
 }
 
 /********************************************************************
@@ -847,7 +895,6 @@ app.get('/broadcast', async (_, res) => {
 
                             sendBroadcastMessage(token, parsedPlaylist, userName);
                         }
-
                     });
                 })
             }
@@ -898,7 +945,9 @@ app.get('/broadcast-override', async (_, res) => {
                     parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
                     makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+
                         sendBroadcastMessage(token, parsedPlaylist, userName);
+
                     })
                 })
             }
