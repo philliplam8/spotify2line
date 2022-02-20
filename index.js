@@ -8,6 +8,20 @@ const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
+// Convert Spotify Preview MP3 to M4A for to support LINE iOS
+// const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+// const ffmpeg = require('fluent-ffmpeg');
+// ffmpeg.setFfmpegPath(ffmpegPath);
+
+// Hosting for M4A files
+const cloudinary = require('cloudinary');
+const { response } = require("express");
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 // Setup all LINE client and Express configurations.
 const clientConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
@@ -96,8 +110,19 @@ const textEventHandler = async (event) => {
     await client.replyMessage(replyToken, response);
 };
 
-// LINE labels only allow <= 20 characters
+// LINE labels only allow <= 20 characters and doesn't allow keyphrase "LINE"
 function shortenToTwentyChar(name) {
+
+    // Regex to detect keyphrase "LINE"
+    const pattern = /line/i;
+    let match = pattern.exec(name);
+
+    if (pattern.test(name)) {
+        let nameUpdate = name;
+        nameUpdate = name.substring(0, match.index);
+        name = nameUpdate;
+    }
+
     // Show full artist name if less than 20
     if (name.length <= 20) {
         return name;
@@ -107,6 +132,10 @@ function shortenToTwentyChar(name) {
         return name.substring(0, 17) + "...";
     }
 }
+
+// ****************************************************************************
+// SPOTIFY API DATA MANIPULATION
+// ****************************************************************************
 
 function parsePlaylistAPI(body, currentTime) {
 
@@ -166,6 +195,7 @@ function parsePlaylistAPI(body, currentTime) {
     const trackId = songLink.substring(31, 55)
     var artistLink = lastItem.track.artists[0].external_urls.spotify;
     const next = body.tracks.next;
+    const previewUrl = lastItem.track.preview_url;
 
     // User
     var userId = lastItem.added_by.id;
@@ -198,6 +228,8 @@ function parsePlaylistAPI(body, currentTime) {
         trackId: trackId,
         artistLink: artistLink,
         next: next,
+        previewUrl: previewUrl,
+
         // User
         userId: userId
     };
@@ -263,6 +295,7 @@ function parseAlteredPlaylistAPI(body, currentTime) {
     const trackId = songLink.substring(31, 55)
     var artistLink = lastItem.track.artists[0].external_urls.spotify;
     const next = body.next;
+    const previewUrl = lastItem.track.preview_url;
 
     // User
     var userId = lastItem.added_by.id;
@@ -295,6 +328,7 @@ function parseAlteredPlaylistAPI(body, currentTime) {
         trackId: trackId,
         artistLink: artistLink,
         next: next,
+        previewUrl: previewUrl,
 
         // User
         userId: userId
@@ -303,7 +337,9 @@ function parseAlteredPlaylistAPI(body, currentTime) {
     return parsedPlaylist;
 }
 
-
+// ****************************************************************************
+// READ/UPDATE JSON FILE CONTENT
+// ****************************************************************************
 function readStoredTotalValue() {
     const JSON_FILE = 'total.json';
     let rawdata = fs.readFileSync(JSON_FILE);
@@ -315,6 +351,89 @@ function updatedStoredTotalValue(updatedValue) {
     fs.writeFileSync(JSON_FILE, JSON.stringify(updatedValue));
 }
 
+// ****************************************************************************
+// FFMPEG
+// ****************************************************************************
+
+// function convertMp3ToM4a(file, destination, error, progressing, finish) {
+
+//     ffmpeg(file)
+//         .on('error', (err) => {
+//             console.log('An error occurred: ' + err.message);
+//             if (error) {
+//                 error(err.message);
+//             }
+//         })
+//         .on('progress', (progress) => {
+//             // console.log(JSON.stringify(progress));
+//             console.log('Processing: ' + progress.targetSize + ' KB converted');
+//             if (progressing) {
+//                 progressing(progress.targetSize);
+//             }
+//         })
+//         .on('end', () => {
+//             console.log('converting format finished !');
+//             if (finish) {
+//                 finish();
+//             }
+//         })
+//         .save(destination);
+// }
+// this following execution when uncommented will perform the conversion
+// convertMp3ToM4a(testmp3file, 'test2.m4a', function (errorMessage) {
+// }, null, function () {
+//     console.log("success");
+// });
+
+// ****************************************************************************
+// Cloudinary - File Hosting
+// ****************************************************************************
+
+// file = local file or url
+// publicId = choose the publicId value i.e. name in cloudinary's storage
+function cloudinaryUploadAudio(file, publicId) {
+
+    return new Promise(function (resolve, reject) {
+
+        cloudinary.v2.uploader.upload(file,
+            {
+                public_id: publicId,
+                resource_type: 'video',
+                format: 'mp4'
+            },
+            function (err, res) {
+                if (err) return reject(err);
+
+                const songLink = String(res.secure_url);
+                console.log(typeof (songLink), songLink);
+                return resolve(songLink);
+            });
+    })
+}
+
+// cloudinaryUploadAudio('https://p.scdn.co/mp3-preview/d5f1ec3f5a6436cbe8e61d2b5a80dc32860e97f6?cid=6ea7402a7a794840977e45afd9b40177', 'testaudio');
+
+function cloudinaryDeleteAudio(publicId) {
+    cloudinary.v2.uploader.destroy(publicId,
+        { invalidate: true, resource_type: "video" },
+        function (err, res) {
+            console.log(res);
+        }
+    );
+}
+// cloudinaryDeleteAudio('testaudio');
+
+// Check hourly usage limits (free tier = 500 per hour, and refreshes)
+cloudinary.v2.api.resources(
+    function (error, result) {
+        console.log(result.rate_limit_allowed,
+            result.rate_limit_remaining,
+            result.rate_limit_reset_at);
+    });
+
+// ****************************************************************************
+// CONSTRUCT LINE MESSAGE TYPES
+// ****************************************************************************
 function constructTextMessage(parsedPlaylist, userName) {
 
     let trackTitle = parsedPlaylist.trackTitle;
@@ -322,7 +441,7 @@ function constructTextMessage(parsedPlaylist, userName) {
     let total = parsedPlaylist.total;
 
     // Compose message with Template Literals (Template Strings)
-    // const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+    // const DATA = `I added the song "${trackTitle}" by ${artit}.\n\nThere are now ${total} songs in the playlist.`;
     const DATA = `"${trackTitle}" by ${artist}`;
 
     // Create a new message.
@@ -408,6 +527,7 @@ function constructAudioMessage(previewTrackUrl) {
     }
 
     return audioMessage;
+
 }
 
 function constructBubbleMessage(parsedPlaylist, userName) {
@@ -429,7 +549,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
                         contents: [
                             {
                                 type: 'image',
-                                url: SPOTIFY_LOGO_URL,                                
+                                url: SPOTIFY_LOGO_URL,
                             }
                         ],
                         height: '70px',
@@ -511,6 +631,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
         }
     }
 
+    console.log(userName)
     return bubbleMessage;
 }
 
@@ -586,6 +707,7 @@ function makePromiseForSpotifyTrack(token, trackId) {
         request.get(trackOptions, function (error, response, body) {
             if (!error && response.statusCode === 200) {
                 var previewTrackUrl = body.preview_url;
+
                 resolve(previewTrackUrl);
             }
             reject(error);
@@ -626,25 +748,25 @@ function sendBroadcastMessage(token, parsedPlaylist, userName) {
     const bubbleMessage = constructBubbleMessage(parsedPlaylist, userName);
 
     // Spotify 30 Second Preview
-    makePromiseForSpotifyTrack(token, parsedPlaylist.trackId).then(function (previewTrackUrl) {
+    let previewTrackUrl = parsedPlaylist.previewUrl;
 
-        // Only send audio message if Spotify has an existing preview Track URL
-        if (previewTrackUrl) {
-            // Construct LINE audio message type
-            const audioMessage = constructAudioMessage(previewTrackUrl);
+    // Only send audio message if Spotify has an existing preview Track URL
+    if (previewTrackUrl) {
+
+        cloudinaryUploadAudio(previewTrackUrl, parsedPlaylist.trackTitle).then(function (updatedUrl) {
+            const audioMessage = constructAudioMessage(updatedUrl);
             return client.broadcast([bubbleMessage, audioMessage]);
+        })
 
-        } else {
-            return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
-        }
-
-    })
+    } else {
+        return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
+    }
 }
 
 /********************************************************************
-
+ 
  APP ROUTES
-
+ 
  *******************************************************************/
 
 // Root Route
@@ -785,7 +907,6 @@ app.get('/broadcast', async (_, res) => {
 
                             sendBroadcastMessage(token, parsedPlaylist, userName);
                         }
-
                     });
                 })
             }
@@ -836,7 +957,9 @@ app.get('/broadcast-override', async (_, res) => {
                     parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
                     makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+
                         sendBroadcastMessage(token, parsedPlaylist, userName);
+
                     })
                 })
             }
