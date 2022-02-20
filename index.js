@@ -110,8 +110,19 @@ const textEventHandler = async (event) => {
     await client.replyMessage(replyToken, response);
 };
 
-// LINE labels only allow <= 20 characters
+// LINE labels only allow <= 20 characters and doesn't allow keyphrase "LINE"
 function shortenToTwentyChar(name) {
+
+    // Regex to detect keyphrase "LINE"
+    const pattern = /line/i;
+    let match = pattern.exec(name);
+
+    if (pattern.test(name)) {
+        let nameUpdate = name;
+        nameUpdate = name.substring(0, match.index);
+        name = nameUpdate;
+    }
+
     // Show full artist name if less than 20
     if (name.length <= 20) {
         return name;
@@ -620,6 +631,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
         }
     }
 
+    console.log(userName)
     return bubbleMessage;
 }
 
