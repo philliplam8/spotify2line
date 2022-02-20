@@ -8,6 +8,14 @@ const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
+// Convert Spotify Preview MP3 to M4A for to support LINE iOS
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const ffmpeg = require('fluent-ffmpeg');
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+// Hosting for M4A files
+const cloudinary = require('cloudinary');
+
 // Setup all LINE client and Express configurations.
 const clientConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
@@ -107,6 +115,10 @@ function shortenToTwentyChar(name) {
         return name.substring(0, 17) + "...";
     }
 }
+
+// ****************************************************************************
+// SPOTIFY API DATA MANIPULATION
+// ****************************************************************************
 
 function parsePlaylistAPI(body, currentTime) {
 
@@ -303,7 +315,9 @@ function parseAlteredPlaylistAPI(body, currentTime) {
     return parsedPlaylist;
 }
 
-
+// ****************************************************************************
+// READ/UPDATE JSON FILE CONTENT
+// ****************************************************************************
 function readStoredTotalValue() {
     const JSON_FILE = 'total.json';
     let rawdata = fs.readFileSync(JSON_FILE);
@@ -315,6 +329,53 @@ function updatedStoredTotalValue(updatedValue) {
     fs.writeFileSync(JSON_FILE, JSON.stringify(updatedValue));
 }
 
+// ****************************************************************************
+// FFMPEG
+// ****************************************************************************
+
+function convertMp3ToM4a(file, destination, error, progressing, finish) {
+
+    ffmpeg(file)
+        .on('error', (err) => {
+            console.log('An error occurred: ' + err.message);
+            if (error) {
+                error(err.message);
+            }
+        })
+        .on('progress', (progress) => {
+            // console.log(JSON.stringify(progress));
+            console.log('Processing: ' + progress.targetSize + ' KB converted');
+            if (progressing) {
+                progressing(progress.targetSize);
+            }
+        })
+        .on('end', () => {
+            console.log('converting format finished !');
+            if (finish) {
+                finish();
+            }
+        })
+        .save(destination);
+
+}
+// this following execution when uncommented will perform the conversion
+const testmp3file = 'https://p.scdn.co/mp3-preview/800317bec6b37104b332c368de58ec61ee826059?cid=6ea7402a7a794840977e45afd9b40177';
+// convertMp3ToM4a(testmp3file, 'test2.m4a', function (errorMessage) {
+// }, null, function () {
+//     console.log("success");
+// });
+
+// ****************************************************************************
+// Cloudinary
+// ****************************************************************************
+
+cloudinary.v2.uploader.upload("test2.m4a",
+  { public_id: "test_audio" }, 
+  function(error, result) {console.log(result); });
+
+// ****************************************************************************
+// CONSTRUCT LINE MESSAGE TYPES
+// ****************************************************************************
 function constructTextMessage(parsedPlaylist, userName) {
 
     let trackTitle = parsedPlaylist.trackTitle;
@@ -322,7 +383,7 @@ function constructTextMessage(parsedPlaylist, userName) {
     let total = parsedPlaylist.total;
 
     // Compose message with Template Literals (Template Strings)
-    // const DATA = `I added the song "${trackTitle}" by ${artist}.\n\nThere are now ${total} songs in the playlist.`;
+    // const DATA = `I added the song "${trackTitle}" by ${artit}.\n\nThere are now ${total} songs in the playlist.`;
     const DATA = `"${trackTitle}" by ${artist}`;
 
     // Create a new message.
@@ -399,6 +460,7 @@ function constructAudioMessage(previewTrackUrl) {
 
     const audioMessage = {
         type: "audio",
+        // originalContentUrl: 'https://res.cloudinary.com/hfburhzk8/video/upload/v1645338326/test_p3lipp.m4a',
         originalContentUrl: previewTrackUrl,
         duration: 30000,
         sender: {
@@ -429,7 +491,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
                         contents: [
                             {
                                 type: 'image',
-                                url: SPOTIFY_LOGO_URL,                                
+                                url: SPOTIFY_LOGO_URL,
                             }
                         ],
                         height: '70px',
@@ -642,9 +704,9 @@ function sendBroadcastMessage(token, parsedPlaylist, userName) {
 }
 
 /********************************************************************
-
+ 
  APP ROUTES
-
+ 
  *******************************************************************/
 
 // Root Route
