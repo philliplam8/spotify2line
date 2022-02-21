@@ -50,8 +50,6 @@ This project will use the following APIs and free services to run and host the s
     # SPOTIFY
     SPOTIFY_CLIENT_ID=''
     SPOTIFY_CLIENT_SECRET=''
-
-    # SPOTIFY PLAYLIST IDs
     PLAYLIST_ID = ''
 
     # CLOUDINARY
@@ -93,21 +91,29 @@ This project will use the following APIs and free services to run and host the s
 6. Copy and paste all key/values from the `.env` file into the Heroku Config Vars section
 7. Click on *More > View Logs* and ensure the app has been deployed successfully
 
-#### 6. Setup FreshPing to periodically ping Heroku app
+#### 6. Setup Cloudinary Add-On
+1. Visit the [Heroku Dashboard](https://dashboard.heroku.com/apps) and click on the created app
+2. Proceed to the Overview Tab > Configure Add-ons
+3. Search for *Cloudinary* and add the Free Tier plan
+4. Click on the added *Cloudinary Add On* to visit the Cloudinary Console
+5. In section *Configure your SDK*, click *Start configuring* > Node.JS
+6. Copy and paste all key values from the `.env` file into the Heroku Config Vars section
+
+#### 7. Setup FreshPing to periodically ping Heroku app
 1. Visit [Freshping](https://app.freshping.io/) and create a new account (or sign in with an existing account)
 2. Click *+ Add Check*
 3. Enter the Heroku app URL into the *Check URL* field
 4. Set *Check interval = 1 min*
 5. Click *Save*
 
-#### 7. Add LINE Channel
+#### 8. Add LINE Channel
 1. Visit [Line Manager](https://manager.line.biz/) 
 2. Click on the Channel created
 3. Click on *Gain Friends > "Add friend" tools"*
 4. Click on *Create a URL*
 5. Visit the URL and add the LINE channel on either desktop or mobile
 
-#### 8. Add song to designated Spotify playlist
+#### 9. Add song to designated Spotify playlist
 1. Congrats you are done! A LINE chat message will automatically send!
 
 ## License
