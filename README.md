@@ -36,6 +36,7 @@ This project will use the following APIs and free services to run and host the s
 - [Spotify Web API](https://developer.spotify.com/documentation/web-api/reference/#/)
 - [LINE Messaging API](https://developers.line.biz/en/services/messaging-api/)
 - [Heroku](https://www.heroku.com/)
+- [Cloudinary](https://cloudinary.com/)
 - [FreshPing](https://app.freshping.io/)
 
 #### 1. Environment Variables File
