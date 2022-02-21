@@ -8,21 +8,15 @@ const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
-// Convert Spotify Preview MP3 to M4A for to support LINE iOS
-// const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-// const ffmpeg = require('fluent-ffmpeg');
-// ffmpeg.setFfmpegPath(ffmpegPath);
-
-// Hosting for M4A files
+// Hosting for Audio files
 const cloudinary = require('cloudinary');
-const { response } = require("express");
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Setup all LINE client and Express configurations.
+// Setup all LINE client configurations.
 const clientConfig = {
     channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
     channelSecret: process.env.CHANNEL_SECRET,
@@ -110,13 +104,14 @@ const textEventHandler = async (event) => {
     await client.replyMessage(replyToken, response);
 };
 
-// LINE labels only allow <= 20 characters and doesn't allow keyphrase "LINE"
+// LINE labels only allow <= 20 characters and doesn't allow keyword "LINE"
 function shortenToTwentyChar(name) {
 
-    // Regex to detect keyphrase "LINE"
+    // Regex to detect keyword "LINE"
     const pattern = /line/i;
     let match = pattern.exec(name);
 
+    // Trim off any instance of "LINE" keyword
     if (pattern.test(name)) {
         let nameUpdate = name;
         nameUpdate = name.substring(0, match.index);
@@ -352,40 +347,6 @@ function updatedStoredTotalValue(updatedValue) {
 }
 
 // ****************************************************************************
-// FFMPEG
-// ****************************************************************************
-
-// function convertMp3ToM4a(file, destination, error, progressing, finish) {
-
-//     ffmpeg(file)
-//         .on('error', (err) => {
-//             console.log('An error occurred: ' + err.message);
-//             if (error) {
-//                 error(err.message);
-//             }
-//         })
-//         .on('progress', (progress) => {
-//             // console.log(JSON.stringify(progress));
-//             console.log('Processing: ' + progress.targetSize + ' KB converted');
-//             if (progressing) {
-//                 progressing(progress.targetSize);
-//             }
-//         })
-//         .on('end', () => {
-//             console.log('converting format finished !');
-//             if (finish) {
-//                 finish();
-//             }
-//         })
-//         .save(destination);
-// }
-// this following execution when uncommented will perform the conversion
-// convertMp3ToM4a(testmp3file, 'test2.m4a', function (errorMessage) {
-// }, null, function () {
-//     console.log("success");
-// });
-
-// ****************************************************************************
 // Cloudinary - File Hosting
 // ****************************************************************************
 
@@ -411,8 +372,6 @@ function cloudinaryUploadAudio(file, publicId) {
     })
 }
 
-// cloudinaryUploadAudio('https://p.scdn.co/mp3-preview/d5f1ec3f5a6436cbe8e61d2b5a80dc32860e97f6?cid=6ea7402a7a794840977e45afd9b40177', 'testaudio');
-
 function cloudinaryDeleteAudio(publicId) {
     cloudinary.v2.uploader.destroy(publicId,
         { invalidate: true, resource_type: "video" },
@@ -421,7 +380,6 @@ function cloudinaryDeleteAudio(publicId) {
         }
     );
 }
-// cloudinaryDeleteAudio('testaudio');
 
 // Check hourly usage limits (free tier = 500 per hour, and refreshes)
 cloudinary.v2.api.resources(
