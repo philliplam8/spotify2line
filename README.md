@@ -27,7 +27,7 @@ Desktop LINE app
     ```
 2. Use the package manager [npm](https://www.npmjs.com/) to install the following dependencies
     ```console
-    npm install @line/bot-sdk express cors cookie-parser request fs dotenv
+    npm install @line/bot-sdk express cors cookie-parser request fs dotenv cloudinary
     ```
 3. Follow steps 1-4 in the [Usage](#Usage) section below to setup the Spotify/Line APIs
 
@@ -53,6 +53,11 @@ This project will use the following APIs and free services to run and host the s
 
     # SPOTIFY PLAYLIST IDs
     PLAYLIST_ID = ''
+
+    # CLOUDINARY
+    CLOUDINARY_CLOUD_NAME=
+    CLOUDINARY_API_KEY=
+    CLOUDINARY_API_SECRET=
     ```
 3. In the following steps, we will be adding several environment variables into this file
 
