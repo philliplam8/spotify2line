@@ -1,6 +1,6 @@
 # spotify2line
 
-spotify2line is a Line bot channel that will send updates when a new song is added into a collaborative playlist.
+spotify2line is a LINE message bot channel that will send updates when a new song is added into a collaborative playlist.
 
 Currently, Spotify has implemented collaborative playlists, which allow multiple users to add songs to a single shared playlist. However, there is no existing notification system in place when someone adds a song. The motivation to create spotify2line was to solve this problem and create a way to send notification updates to a LINE chat when a new song has been added.
 
