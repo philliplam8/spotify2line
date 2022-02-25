@@ -734,16 +734,6 @@ app.get('/', (_, res) => {
 
 });
 
-app.get('/token', (_, res) => {
-    // Create promise to grab Spotify access token
-    request.post(authOptions, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
-            var token = body.access_token;
-            res.send(token);
-        }
-    });
-})
-
 app.get('/preview/', async (req, res) => {
     const trackId = req.query.id;
 
@@ -832,7 +822,6 @@ app.get('/manual-update-local-data', async (_, res) => {
 });
 
 // This route is used to broadcast the latest playlist song to all friends
-// TODO fix the callback hell below
 app.get('/broadcast', async (_, res) => {
 
     // Get the current time the '/broadcast' route was requested
