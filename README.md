@@ -7,11 +7,9 @@ spotify2line is a Line bot channel that will send updates when a new song is add
 
 ## Screenshot
 Mobile LINE app 
-- _supports quick reply buttons_
 - <img src='./assets/spotify2line-demo-screenshot-mobile.jpg' alt='spotify2line demo screenshot mobile view' width='300'>
 
 Desktop LINE app 
-- _does not support quick reply buttons_
 - <img src='./assets/spotify2line-demo-screenshot.png' alt='spotify2line demo screenshot desktop view' width='300'>
 
 ## Getting Started
