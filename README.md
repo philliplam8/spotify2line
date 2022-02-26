@@ -7,11 +7,11 @@ Currently, Spotify has implemented collaborative playlists, which allow multiple
 
 
 ## Screenshot
-Mobile LINE app 
-- <img src='./assets/spotify2line-demo-screenshot-mobile.jpg' alt='spotify2line demo screenshot mobile view' width='300'>
+        
+Mobile LINE app            | Desktop LINE app          | If there is no song preview available
+:-------------------------:|:-------------------------:|:-------------------------:
+<img src='./assets/spotify2line-demo-screenshot-mobile.jpg' alt='spotify2line demo screenshot mobile view' width='300'> | <img src='./assets/spotify2line-demo-screenshot.png' alt='spotify2line demo screenshot desktop view' width='300'> | <img src='./assets/spotify2line-demo-nopreview-screenshot.jpg' alt='spotify2line demo no song preview screenshot' width='300'>
 
-Desktop LINE app 
-- <img src='./assets/spotify2line-demo-screenshot.png' alt='spotify2line demo screenshot desktop view' width='300'>
 
 ## Getting Started
 
