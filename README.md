@@ -122,5 +122,6 @@ This project will use the following APIs and free services to run and host the s
 1. Congratulations, you are done! A LINE chat message will automatically send a broadcast message!
 >>>>>>> f6842ccc899cc1e677135eb4bcebcaeee08781c5
 
+
 ## License
 spotify2line is licensed under the [MIT license](https://github.com/philliplam8/spotify2line/blob/main/LICENSE.txt)
