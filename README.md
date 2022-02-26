@@ -1,18 +1,19 @@
 # spotify2line
 
+spotify2line is a LINE message bot channel that will send updates when a new song is added into a collaborative playlist.
 
 Currently, Spotify has implemented collaborative playlists, which allow multiple users to add songs to a single shared playlist. However, there is no existing notification system in place when someone adds a song. The motivation to create spotify2line was to solve this problem and create a way to send notification updates to a LINE chat when a new song has been added.
 
-spotify2line is a Line bot channel that will send updates when a new song is added into a collaborative playlist.
+
 
 ## Screenshot
-Mobile LINE app 
-- _supports quick reply buttons_
-- <img src='./assets/spotify2line-demo-screenshot-mobile.jpg' alt='spotify2line demo screenshot mobile view' width='300'>
 
-Desktop LINE app 
-- _does not support quick reply buttons_
-- <img src='./assets/spotify2line-demo-screenshot.png' alt='spotify2line demo screenshot desktop view' width='300'>
+| Description                           | Demo Image    |
+| ------------------------------------- |:-------------:|
+| Mobile LINE app                       | <img src='./assets/spotify2line-demo-screenshot-mobile.jpg' alt='spotify2line demo screenshot mobile view' width='300'> |
+| Desktop LINE app                      | <img src='./assets/spotify2line-demo-screenshot.png' alt='spotify2line demo screenshot desktop view' width='300'> |
+| If there is no song preview available | <img src='./assets/spotify2line-demo-nopreview-screenshot.jpg' alt='spotify2line demo no song preview screenshot' width='300'> |
+
 
 ## Getting Started
 
@@ -29,7 +30,7 @@ Desktop LINE app
     ```console
     npm install @line/bot-sdk express cors cookie-parser request fs dotenv cloudinary
     ```
-3. Follow steps 1-4 in the [Usage](#Usage) section below to setup the Spotify/Line APIs
+3. Follow steps in the [Usage](#Usage) section below to host and use the spotify2line app
 
 ### Usage
 This project will use the following APIs and free services to run and host the spotify2line application
@@ -115,7 +116,11 @@ This project will use the following APIs and free services to run and host the s
 5. Visit the URL and add the LINE channel on either desktop or mobile
 
 #### 9. Add song to designated Spotify playlist
+<<<<<<< HEAD
 1. Congrats you are done! A LINE chat message will automatically send!
+=======
+1. Congratulations, you are done! A LINE chat message will automatically send a broadcast message!
+>>>>>>> f6842ccc899cc1e677135eb4bcebcaeee08781c5
 
 ## License
 spotify2line is licensed under the [MIT license](https://github.com/philliplam8/spotify2line/blob/main/LICENSE.txt)
