@@ -1,12 +1,12 @@
 const line = require("@line/bot-sdk");
 var request = require('request');   // "Request" library
 
-const fs = require('fs');           // fs Module to read/write JSON files
 require('dotenv').config();         // pre-loaded instead using '$ node -r dotenv/config app.js'
 
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const helpers = require('./utils/helpers.util.js');
 
 // Hosting for Audio files
 const cloudinary = require('cloudinary');
@@ -104,30 +104,6 @@ const textEventHandler = async (event) => {
     await client.replyMessage(replyToken, response);
 };
 
-// LINE labels only allow <= 20 characters and doesn't allow keyword "LINE"
-function shortenToTwentyChar(name) {
-
-    // Regex to detect keyword "LINE"
-    const pattern = /line/i;
-    let match = pattern.exec(name);
-
-    // Trim off any instance of "LINE" keyword
-    if (pattern.test(name)) {
-        let nameUpdate = name;
-        nameUpdate = name.substring(0, match.index);
-        name = nameUpdate;
-    }
-
-    // Show full artist name if less than 20
-    if (name.length <= 20) {
-        return name;
-    }
-    // Otherwise shorten artist name with ellipsis
-    else {
-        return name.substring(0, 17) + "...";
-    }
-}
-
 // ****************************************************************************
 // SPOTIFY API DATA MANIPULATION
 // ****************************************************************************
@@ -149,7 +125,7 @@ function parsePlaylistAPI(body, currentTime) {
 
     // Artist
     var artist = lastItem.track.artists[0].name;
-    var artistSubstring = shortenToTwentyChar(artist); // used for quick reply
+    var artistSubstring = helpers.shortenToTwentyChar(artist); // used for quick reply
 
     var totalArtists = lastItem.track.artists.length;
 
@@ -249,7 +225,7 @@ function parseAlteredPlaylistAPI(body, currentTime) {
 
     // Artist
     var artist = lastItem.track.artists[0].name;
-    var artistSubstring = shortenToTwentyChar(artist); // used for quick reply
+    var artistSubstring = helpers.shortenToTwentyChar(artist); // used for quick reply
 
     var totalArtists = lastItem.track.artists.length;
 
@@ -333,20 +309,6 @@ function parseAlteredPlaylistAPI(body, currentTime) {
 }
 
 // ****************************************************************************
-// READ/UPDATE JSON FILE CONTENT
-// ****************************************************************************
-function readStoredTotalValue() {
-    const JSON_FILE = 'total.json';
-    let rawdata = fs.readFileSync(JSON_FILE);
-    return JSON.parse(rawdata);
-}
-
-function updatedStoredTotalValue(updatedValue) {
-    const JSON_FILE = 'total.json';
-    fs.writeFileSync(JSON_FILE, JSON.stringify(updatedValue));
-}
-
-// ****************************************************************************
 // Cloudinary - File Hosting
 // ****************************************************************************
 
@@ -407,7 +369,7 @@ function constructTextMessage(parsedPlaylist, userName) {
         type: 'text',
         text: DATA,
         sender: {
-            name: shortenToTwentyChar(userName), // Sender will appear in the notification push and in the convo
+            name: helpers.shortenToTwentyChar(userName), // Sender will appear in the notification push and in the convo
             iconUrl: CONY_IMG
         }
     };
@@ -464,7 +426,7 @@ function constructQuickReplyButtons(parsedPlaylist, userName) {
             ]
         },
         sender: {
-            name: shortenToTwentyChar(userName),
+            name: helpers.shortenToTwentyChar(userName),
             iconUrl: CONY_IMG
         }
     }
@@ -584,7 +546,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
             }
         },
         sender: {
-            name: shortenToTwentyChar(userName),
+            name: helpers.shortenToTwentyChar(userName),
             iconUrl: CONY_IMG
         }
     }
@@ -779,7 +741,7 @@ app.get('/playlist', async (_, res) => {
 app.get('/check-local-data', async (_, res) => {
 
     // Get previous value of Total stored
-    const storedPlaylistTotalObject = readStoredTotalValue();
+    const storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
     makePromiseForSpotifyToken().then(function (token) {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
@@ -799,7 +761,7 @@ app.get('/check-local-data', async (_, res) => {
 app.get('/manual-update-local-data', async (_, res) => {
 
     // Get previous value of Total stored
-    let storedPlaylistTotalObject = readStoredTotalValue();
+    let storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
     makePromiseForSpotifyToken().then(function (token) {
         makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
@@ -808,8 +770,8 @@ app.get('/manual-update-local-data', async (_, res) => {
             var spotifyTotal = playlistBody.tracks.total;
 
             // Update database value to current value
-            updatedStoredTotalValue(spotifyTotal);
-            storedPlaylistTotalObject = readStoredTotalValue();
+            helpers.updatedStoredTotalValue(spotifyTotal);
+            storedPlaylistTotalObject = helpers.readStoredTotalValue();
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
         })
@@ -835,7 +797,7 @@ app.get('/broadcast', async (_, res) => {
             let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
 
             // Get previous value of Total stored
-            const storedPlaylistTotalObject = readStoredTotalValue();
+            const storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
             // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
             // so we will check if the total tracks to determine where the last track is located
@@ -870,7 +832,7 @@ app.get('/broadcast', async (_, res) => {
             }
 
             // Update database value to current value anyways 
-            updatedStoredTotalValue(parsedPlaylist.total);
+            helpers.updatedStoredTotalValue(parsedPlaylist.total);
         });
     });
 
@@ -918,7 +880,7 @@ app.get('/broadcast-override', async (_, res) => {
             }
 
             // Update database value to current value
-            updatedStoredTotalValue(parsedPlaylist.total);
+            helpers.updatedStoredTotalValue(parsedPlaylist.total);
 
         });
     })
@@ -931,6 +893,6 @@ app.get('/broadcast-override', async (_, res) => {
 
 // Create a server and listen to it.
 app.listen(PORT, () => {
-    (`Application is live and listening on port ${PORT}`);
+    console.log(`Application is live and listening on port ${PORT}`);
 });
 
