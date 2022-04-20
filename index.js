@@ -1,11 +1,14 @@
 const line = require("@line/bot-sdk");
 var request = require('request');   // "Request" library
 
-require('dotenv').config();         // pre-loaded instead using '$ node -r dotenv/config app.js'
+require('dotenv').config();
 
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const generalConfig = require('./configs/general.config.js');
+const lineClientConfig = require('./configs/line.config.js'); // TODO will eventually go into Line Service file
+const spotifyClientConfig = require('./configs/spotify.config.js'); // TODO will eventually go into Spotify Service file
 const helpers = require('./utils/helpers.util.js');
 
 // Hosting for Audio files
@@ -16,14 +19,6 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Setup all LINE client configurations.
-const clientConfig = {
-    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
-    channelSecret: process.env.CHANNEL_SECRET,
-};
-
-const PORT = process.env.PORT || 3000;
-
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SPOTIFY SECTION
@@ -33,10 +28,6 @@ SPOTIFY SECTION
 // SPOTIFY VARIABLES ----------------------------------------------------------
 const SPOTIFY_LOGO_ICON_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
 const SPOTIFY_LOGO_URL = 'https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_Green.png';
-var client_id = process.env.SPOTIFY_CLIENT_ID; // Your client id
-var client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Your secret
-const PLAYLIST = process.env.PLAYLIST_ID;
-
 // LINE Images
 const CONY_IMG = "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102";
 
@@ -44,7 +35,7 @@ const CONY_IMG = "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.p
 var authOptions = {
     url: 'https://accounts.spotify.com/api/token',
     headers: {
-        'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Basic ' + (new Buffer(spotifyClientConfig.client_id + ':' + spotifyClientConfig.client_secret).toString('base64'))
     },
     form: {
         grant_type: 'client_credentials'
@@ -65,7 +56,7 @@ LINE SECTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 // Create a new LINE SDK client.
-const client = new line.Client(clientConfig);
+const client = new line.Client(lineClientConfig);
 
 const NO_PREVIEW_MESSAGE = {
     "type": "text",
@@ -538,7 +529,7 @@ function constructBubbleMessage(parsedPlaylist, userName) {
                                 action: {
                                     type: 'uri',
                                     label: 'Open Playlist 📃',
-                                    uri: 'https://open.spotify.com/playlist/' + PLAYLIST
+                                    uri: 'https://open.spotify.com/playlist/' + spotifyClientConfig.PLAYLIST
                                 }
                             }]
                     }],
@@ -725,8 +716,8 @@ app.get('/check-playlist/', async (req, res) => {
 app.get('/playlist', async (_, res) => {
 
     makePromiseForSpotifyToken().then(function (token) {
-        makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
-            res.status(200).send({ PLAYLIST, playlistBody });
+        makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
+            res.status(200).send({ playlistBody });
             res.end();
         })
     },
@@ -744,7 +735,7 @@ app.get('/check-local-data', async (_, res) => {
     const storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
     makePromiseForSpotifyToken().then(function (token) {
-        makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
+        makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
             var spotifyTotal = playlistBody.tracks.total;
             res.send({ storedPlaylistTotalObject, spotifyTotal });
             res.end();
@@ -764,7 +755,7 @@ app.get('/manual-update-local-data', async (_, res) => {
     let storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
     makePromiseForSpotifyToken().then(function (token) {
-        makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
+        makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
 
             // Parse through response
             var spotifyTotal = playlistBody.tracks.total;
@@ -791,7 +782,7 @@ app.get('/broadcast', async (_, res) => {
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
     makePromiseForSpotifyToken().then(function (token) {
-        makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
+        makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
             let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
@@ -805,7 +796,7 @@ app.get('/broadcast', async (_, res) => {
 
                 // Will need to call the Spotify Playlist API again but view the last "page"
                 const offset = 100 * Math.floor(parsedPlaylist.total / 100);
-                const alteredPlaylistId = PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
+                const alteredPlaylistId = spotifyClientConfig.PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
                 makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
                     parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
@@ -850,7 +841,7 @@ app.get('/broadcast-override', async (_, res) => {
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
     makePromiseForSpotifyToken().then(function (token) {
-        makePromiseForSpotifyPlaylist(token, PLAYLIST).then(function (playlistBody) {
+        makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
 
             // PARSE THROUGH PLAYLIST API RESPONSE;
             let parsedPlaylist = parsePlaylistAPI(playlistBody, currentTime);
@@ -861,7 +852,7 @@ app.get('/broadcast-override', async (_, res) => {
 
                 // Will need to call the Spotify Playlist API again but view the last "page"
                 const offset = 100 * Math.floor(parsedPlaylist.total / 100);
-                const alteredPlaylistId = PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
+                const alteredPlaylistId = spotifyClientConfig.PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
                 makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
                     parsedPlaylist = parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
@@ -892,7 +883,7 @@ app.get('/broadcast-override', async (_, res) => {
 });
 
 // Create a server and listen to it.
-app.listen(PORT, () => {
-    console.log(`Application is live and listening on port ${PORT}`);
+app.listen(generalConfig.PORT, () => {
+    console.log(`Application is live and listening on port ${generalConfig.PORT}`);
 });
 
