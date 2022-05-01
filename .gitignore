@@ -3,3 +3,4 @@
 .eslintrc.js
 old
 node_modules
+coverage
