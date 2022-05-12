@@ -1,8 +1,6 @@
-const line = require("@line/bot-sdk");
-var request = require('request');   // "Request" library
-
 require('dotenv').config();
-
+const line = require("@line/bot-sdk");
+const request = require('request');   // "Request" library
 const express = require('express');   // Express web server framework
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -45,16 +43,18 @@ function callbackSendPreviewTrack(token, trackId, res) {
                 return client.broadcast([audioMessage]);
             }
             else {
-                client.broadcast(lineService.NO_PREVIEW_MESSAGE);
+                const NO_PREVIEW_MESSAGE = lineMessage.NO_PREVIEW_MESSAGE;
+                client.broadcast(NO_PREVIEW_MESSAGE);
                 res.end();
             }
         }
     })
 }
 
-function sendBroadcastMessage(token, parsedPlaylist, userName) {
+function sendBroadcastMessage(parsedPlaylist, userName, userIcon) {
 
-    const bubbleMessage = lineMessage.constructBubbleMessage(parsedPlaylist, userName);
+    const bubbleMessage = lineMessage.constructBubbleMessage(parsedPlaylist, userName, userIcon);
+    const NO_PREVIEW_MESSAGE = lineMessage.NO_PREVIEW_MESSAGE;
 
     // Spotify 30 Second Preview
     let previewTrackUrl = parsedPlaylist.previewUrl;
@@ -62,13 +62,14 @@ function sendBroadcastMessage(token, parsedPlaylist, userName) {
     // Only send audio message if Spotify has an existing preview Track URL
     if (previewTrackUrl) {
 
+        // Convert mp3 audio to mp4 format using Cloudinary
         cloudinary.uploadAudio(previewTrackUrl, parsedPlaylist.trackTitle).then(function (updatedUrl) {
             const audioMessage = lineMessage.constructAudioMessage(updatedUrl);
             return client.broadcast([bubbleMessage, audioMessage]);
         })
 
     } else {
-        return client.broadcast([bubbleMessage, lineService.NO_PREVIEW_MESSAGE]);
+        return client.broadcast([bubbleMessage, NO_PREVIEW_MESSAGE]);
     }
 }
 
@@ -97,12 +98,16 @@ app.get('/preview/', async (req, res) => {
 app.get('/check-playlist/', async (req, res) => {
     const playlistId = req.query.id;
 
-    spotifyService.makePromiseForSpotifyToken().then(function (token) {
-        spotifyService.makePromiseForSpotifyPlaylist(token, playlistId).then(function (playlistBody) {
-            res.status(200).send({ playlistId, playlistBody });
-            res.end();
-        })
-    },
+    spotifyService.makePromiseForSpotifyToken().then(
+
+        // If promise fulfilled...
+        function (token) {
+            spotifyService.makePromiseForSpotifyPlaylist(token, playlistId).then(
+                function (playlistBody) {
+                    res.status(200).send({ playlistId, playlistBody });
+                    res.end();
+                })
+        },
 
         // If promise rejected...
         function (error) {
@@ -113,12 +118,16 @@ app.get('/check-playlist/', async (req, res) => {
 
 app.get('/playlist', async (_, res) => {
 
-    spotifyService.makePromiseForSpotifyToken().then(function (token) {
-        spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
-            res.status(200).send({ playlistBody });
-            res.end();
-        })
-    },
+    spotifyService.makePromiseForSpotifyToken().then(
+
+        // If promise fulfilled...
+        function (token) {
+            spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(
+                function (playlistBody) {
+                    res.status(200).send({ playlistBody });
+                    res.end();
+                })
+        },
 
         // If promise rejected...
         function (error) {
@@ -132,13 +141,15 @@ app.get('/check-local-data', async (_, res) => {
     // Get previous value of Total stored
     const storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
-    spotifyService.makePromiseForSpotifyToken().then(function (token) {
-        spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
-            var spotifyTotal = playlistBody.tracks.total;
-            res.send({ storedPlaylistTotalObject, spotifyTotal });
-            res.end();
-        })
-    },
+    spotifyService.makePromiseForSpotifyToken().then(
+        function (token) {
+            spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(
+                function (playlistBody) {
+                    var spotifyTotal = playlistBody.tracks.total;
+                    res.send({ storedPlaylistTotalObject, spotifyTotal });
+                    res.end();
+                })
+        },
 
         // If promise rejected...
         function (error) {
@@ -152,19 +163,23 @@ app.get('/manual-update-local-data', async (_, res) => {
     // Get previous value of Total stored
     let storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
-    spotifyService.makePromiseForSpotifyToken().then(function (token) {
-        spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
+    spotifyService.makePromiseForSpotifyToken().then(
 
-            // Parse through response
-            var spotifyTotal = playlistBody.tracks.total;
+        function (token) {
+            spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(
 
-            // Update database value to current value
-            helpers.updatedStoredTotalValue(spotifyTotal);
-            storedPlaylistTotalObject = helpers.readStoredTotalValue();
-            res.send({ storedPlaylistTotalObject, spotifyTotal });
-            res.end();
-        })
-    },
+                function (playlistBody) {
+
+                    // Parse through response
+                    var spotifyTotal = playlistBody.tracks.total;
+
+                    // Update database value to current value
+                    helpers.updatedStoredTotalValue(spotifyTotal);
+                    storedPlaylistTotalObject = helpers.readStoredTotalValue();
+                    res.send({ storedPlaylistTotalObject, spotifyTotal });
+                    res.end();
+                })
+        },
         // If promise rejected...
         function (error) {
             res.send(error);
@@ -179,51 +194,57 @@ app.get('/broadcast', async (_, res) => {
     var currentTime = new Date();
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
-    spotifyService.makePromiseForSpotifyToken().then(function (token) {
-        spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
+    spotifyService.makePromiseForSpotifyToken().then(
 
-            // PARSE THROUGH PLAYLIST API RESPONSE;
-            let parsedPlaylist = spotifyService.parsePlaylistAPI(playlistBody, currentTime);
+        function (token) {
+            spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(
 
-            // Get previous value of Total stored
-            const storedPlaylistTotalObject = helpers.readStoredTotalValue();
+                function (playlistBody) {
 
-            // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
-            // so we will check if the total tracks to determine where the last track is located
-            if (parsedPlaylist.total > 100) {
+                    // PARSE THROUGH PLAYLIST API RESPONSE;
+                    let parsedPlaylist = spotifyService.parsePlaylistAPI(playlistBody, currentTime);
 
-                // Will need to call the Spotify Playlist API again but view the last "page"
-                const offset = 100 * Math.floor(parsedPlaylist.total / 100);
-                const alteredPlaylistId = spotifyClientConfig.PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
-                spotifyService.makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
-                    parsedPlaylist = spotifyService.parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
+                    // Get previous value of Total stored
+                    const storedPlaylistTotalObject = helpers.readStoredTotalValue();
 
-                    spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+                    // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
+                    // so we will check if the total tracks to determine where the last track is located
+                    if (parsedPlaylist.total > 100) {
 
-                        // Only broadcast if song was added within a minute of ping and new song was added
-                        if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject != parsedPlaylist.total) {
+                        // Will need to call the Spotify Playlist API again but view the last "page"
+                        const offset = helpers.roundToFloorHundreds(parsedPlaylist.total);
+                        const alteredPlaylistId = spotifyClientConfig.PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
+                        spotifyService.makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
+                            parsedPlaylist = spotifyService.parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
 
-                            sendBroadcastMessage(token, parsedPlaylist, userName);
-                        }
-                    });
-                })
-            }
+                            spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(
+                                function (user) {
 
-            else {
+                                    // Only broadcast if song was added within a minute of ping and new song was added
+                                    if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject != parsedPlaylist.total) {
 
-                spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
-
-                    // Only broadcast if song was added within a minute of ping and new song was added
-                    if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject != parsedPlaylist.total) {
-                        sendBroadcastMessage(token, parsedPlaylist, userName);
+                                        sendBroadcastMessage(parsedPlaylist, user.userName, user.userIcon);
+                                    }
+                                });
+                        })
                     }
-                });
-            }
 
-            // Update database value to current value anyways 
-            helpers.updatedStoredTotalValue(parsedPlaylist.total);
+                    else {
+
+                        spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(
+                            function (user) {
+
+                                // Only broadcast if song was added within a minute of ping and new song was added
+                                if (parsedPlaylist.timeDifference <= 1 & storedPlaylistTotalObject != parsedPlaylist.total) {
+                                    sendBroadcastMessage(parsedPlaylist, user.userName, user.userIcon);
+                                }
+                            });
+                    }
+
+                    // Update database value to current value anyways 
+                    helpers.updatedStoredTotalValue(parsedPlaylist.total);
+                });
         });
-    });
 
     return res.status(200).json({
         status: 'success',
@@ -234,45 +255,49 @@ app.get('/broadcast', async (_, res) => {
 // Force Broadcast
 app.get('/broadcast-override', async (_, res) => {
 
-    // Get the current time the '/broadcast' route was requested
+    // Get the current time the '/broadcast-override' route was requested
     var currentTime = new Date();
 
     // Promise "Consuming Code" (Must wait for a fulfilled Promise...)
-    spotifyService.makePromiseForSpotifyToken().then(function (token) {
-        spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(function (playlistBody) {
+    spotifyService.makePromiseForSpotifyToken().then(
 
-            // PARSE THROUGH PLAYLIST API RESPONSE;
-            let parsedPlaylist = spotifyService.parsePlaylistAPI(playlistBody, currentTime);
+        function (token) {
+            spotifyService.makePromiseForSpotifyPlaylist(token, spotifyClientConfig.PLAYLIST).then(
+                function (playlistBody) {
 
-            // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
-            // so we will check if the total tracks to determine where the last track is located
-            if (parsedPlaylist.total > 100) {
+                    // PARSE THROUGH PLAYLIST API RESPONSE;
+                    let parsedPlaylist = spotifyService.parsePlaylistAPI(playlistBody, currentTime);
 
-                // Will need to call the Spotify Playlist API again but view the last "page"
-                const offset = 100 * Math.floor(parsedPlaylist.total / 100);
-                const alteredPlaylistId = spotifyClientConfig.PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
-                spotifyService.makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(function (alteredPlaylistBody) {
-                    parsedPlaylist = spotifyService.parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
+                    // Spotify's Playlist Tracklist API is pagniated and limited to 100 tracks per page
+                    // so we will check if the total tracks to determine where the last track is located
+                    if (parsedPlaylist.total > 100) {
 
-                    spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
+                        // Will need to call the Spotify Playlist API again but view the last "page"
+                        const offset = helpers.roundToFloorHundreds(parsedPlaylist.total);
+                        const alteredPlaylistId = spotifyClientConfig.PLAYLIST + '/tracks?offset=' + offset + '&limit=100';
+                        spotifyService.makePromiseForSpotifyPlaylist(token, alteredPlaylistId).then(
 
-                        sendBroadcastMessage(token, parsedPlaylist, userName);
+                            function (alteredPlaylistBody) {
+                                parsedPlaylist = spotifyService.parseAlteredPlaylistAPI(alteredPlaylistBody, currentTime);
+                                spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(
+                                    function (user) {
+                                        sendBroadcastMessage(parsedPlaylist, user.userName, user.userIcon);
+                                    })
+                            })
+                    }
 
-                    })
-                })
-            }
+                    else {
+                        spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(
+                            function (user) {
+                                sendBroadcastMessage(parsedPlaylist, user.userName, user.userIcon);
+                            })
+                    }
 
-            else {
-                spotifyService.makePromiseForSpotifyUserName(token, parsedPlaylist.userId).then(function (userName) {
-                    sendBroadcastMessage(token, parsedPlaylist, userName);
-                })
-            }
+                    // Update database value to current value
+                    helpers.updatedStoredTotalValue(parsedPlaylist.total);
 
-            // Update database value to current value
-            helpers.updatedStoredTotalValue(parsedPlaylist.total);
-
-        });
-    })
+                });
+        })
 
     return res.status(200).json({
         status: 'success',

@@ -17,7 +17,7 @@ var authOptions = {
 
 /**
  * 
- * @returns 
+ * @returns {Promise} 
  */
 function makePromiseForSpotifyToken() {
 
@@ -38,7 +38,7 @@ function makePromiseForSpotifyToken() {
  * 
  * @param {string} token 
  * @param {string} playlistId 
- * @returns 
+ * @returns {Promise} 
  */
 function makePromiseForSpotifyPlaylist(token, playlistId) {
 
@@ -70,7 +70,7 @@ function makePromiseForSpotifyPlaylist(token, playlistId) {
  */
 function makePromiseForSpotifyUserName(token, userId) {
 
-    // Determine userName from userId:
+    // Determine user's Spotify username and user's icon from userId:
     var userIdOptions = {
         url: 'https://api.spotify.com/v1/users/' + userId,
         headers: {
@@ -82,7 +82,10 @@ function makePromiseForSpotifyUserName(token, userId) {
     return new Promise(function (resolve, reject) {
         request.get(userIdOptions, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                resolve(body.display_name);
+                resolve({
+                    userName : body.display_name,
+                    userIcon : body.images[0].url
+                });
             }
             reject(error);
         });
