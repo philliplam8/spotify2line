@@ -4,6 +4,23 @@ spotify2line is a LINE message bot channel that will send updates when a new son
 
 Currently, Spotify has implemented collaborative playlists, which allow multiple users to add songs to a single shared playlist. However, there is no existing notification system in place when someone adds a song. The motivation to create spotify2line was to solve this problem and create a way to send notification updates to a LINE chat when a new song has been added.
 
+## Table of Contents
+  * [Screenshot](#screenshot)
+  * [Getting Started](#getting-started)
+    + [Pre-requisites](#pre-requisites)
+    + [Installation](#installation)
+    + [Setup](#setup)
+      - [1. Environment Variables File](#1-environment-variables-file)
+      - [2. Create a new Spotify Developer App and Generate Client ID & Client Secret](#2-create-a-new-spotify-developer-app-and-generate-client-id---client-secret)
+      - [3. Determine Spotify Playlist ID](#3-determine-spotify-playlist-id)
+      - [4. Create a new LINE Channel and Generate Channel Access Token & Channel Secret](#4-create-a-new-line-channel-and-generate-channel-access-token---channel-secret)
+      - [5. Create a new Heroku app and deploy app](#5-create-a-new-heroku-app-and-deploy-app)
+      - [6. Setup Cloudinary Add-On](#6-setup-cloudinary-add-on)
+      - [7. Setup FreshPing to periodically ping Heroku app](#7-setup-freshping-to-periodically-ping-heroku-app)
+      - [8. Add LINE Channel](#8-add-line-channel)
+    + [Usage](#usage)
+  * [License](#license)
+
 
 
 ## Screenshot
@@ -32,7 +49,7 @@ Currently, Spotify has implemented collaborative playlists, which allow multiple
     ```
 3. Follow steps in the [Usage](#Usage) section below to host and use the spotify2line app
 
-### Usage
+### Setup
 This project will use the following APIs and free services to run and host the spotify2line application
 - [Spotify Web API](https://developer.spotify.com/documentation/web-api/reference/#/)
 - [LINE Messaging API](https://developers.line.biz/en/services/messaging-api/)
@@ -115,8 +132,9 @@ This project will use the following APIs and free services to run and host the s
 4. Click on *Create a URL*
 5. Visit the URL and add the LINE channel on either desktop or mobile
 
-#### 9. Add song to designated Spotify playlist
-1. Congratulations, you are done! A LINE chat message will automatically send a broadcast message!
+## Usage
+1. Add any song to the Spotify playlist configured during the setup steps above
+2. Congratulations, you are done! A LINE chat message will automatically send a broadcast message!
 
 
 ## License
