@@ -29,13 +29,13 @@ function shortenToTwentyChar(name) {
 }
 
 function readStoredTotalValue() {
-    const JSON_FILE = './../total.json';
+    const JSON_FILE = './total.json';
     let rawdata = fs.readFileSync(JSON_FILE);
     return JSON.parse(rawdata);
 }
 
 function updatedStoredTotalValue(updatedValue) {
-    const JSON_FILE = './../total.json';
+    const JSON_FILE = './total.json';
     fs.writeFileSync(JSON_FILE, JSON.stringify(updatedValue));
 }
 
