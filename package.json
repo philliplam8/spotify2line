@@ -1,6 +1,6 @@
 {
   "name": "spotify2line",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "A LINE bot with Javascript to broadcast Spotify Playlist updates",
   "main": "index.js",
   "engines": {
@@ -19,11 +19,13 @@
     "request": "^2.88.2"
   },
   "devDependencies": {
-    "eslint": "^8.9.0"
+    "eslint": "^8.9.0",
+    "jest": "^28.0.3"
   },
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --coverage",
+    "prestart": "npm run test",
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC"
