@@ -47,7 +47,7 @@ Currently, Spotify has implemented collaborative playlists, which allow multiple
     ```console
     npm i
     ```
-3. Follow steps in the [Usage](#Usage) section below to host and use the spotify2line app
+3. Follow steps in the [Setup](#Setup) section below to host and use the spotify2line app
 
 ### Setup
 This project will use the following APIs and free services to run and host the spotify2line application
