@@ -1,8 +1,8 @@
 const helpers = require('../utils/helpers.util.js');
 require('dotenv').config({ path: '../.env' });
 const spotifyClientConfig = require('../configs/spotify.config.js');
-
 const SPOTIFY_LOGO_ICON_URL = "https://www.freepnglogos.com/uploads/spotify-logo-png/spotify-download-logo-30.png";
+
 const SPOTIFY_LOGO_URL = 'https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_Green.png';
 const CONY_IMG = "https://static.wikia.nocookie.net/line/images/1/10/2015-cony.png/revision/latest/scale-to-width-down/490?cb=20150806042102";
 
@@ -22,6 +22,7 @@ const NO_PREVIEW_MESSAGE = {
     }
 }
 
+// Not used anymore
 function constructTextMessage(parsedPlaylist, userName) {
 
     let trackTitle = parsedPlaylist.trackTitle;
@@ -45,6 +46,7 @@ function constructTextMessage(parsedPlaylist, userName) {
     return textMessage;
 }
 
+// Not used anymore
 function constructQuickReplyButtons(parsedPlaylist, userName) {
 
     let testMImageURL = parsedPlaylist.testMImageURL;
@@ -115,7 +117,15 @@ function constructAudioMessage(previewTrackUrl) {
     return audioMessage;
 }
 
-function constructBubbleMessage(parsedPlaylist, userName) {
+function constructBubbleMessage(parsedPlaylist, spotifyUserName, spotifyUserIcon) {
+
+    // Use the user's Spotify Icon Image if they have one
+    let userIcon;
+    if (spotifyUserIcon) {
+        userIcon = spotifyUserIcon;
+    } else {
+        userIcon = CONY_IMG;
+    }
 
     const bubbleMessage = {
         type: 'flex',
@@ -211,12 +221,12 @@ function constructBubbleMessage(parsedPlaylist, userName) {
             }
         },
         sender: {
-            name: helpers.shortenToTwentyChar(userName),
-            iconUrl: CONY_IMG
+            name: helpers.shortenToTwentyChar(spotifyUserName),
+            iconUrl: userIcon
         }
     }
 
-    console.log(userName)
+    console.log(`New song added by ${spotifyUserName} who has icon Url ${userIcon}`);
     return bubbleMessage;
 }
 
