@@ -39,9 +39,13 @@ function updatedStoredTotalValue(updatedValue) {
     fs.writeFileSync(JSON_FILE, JSON.stringify(updatedValue));
 }
 
+function roundToFloorHundreds(decimalNumber) {
+    return 100 * Math.floor(decimalNumber / 100);
+}
 
 module.exports = {
     shortenToTwentyChar,
     readStoredTotalValue,
-    updatedStoredTotalValue
+    updatedStoredTotalValue,
+    roundToFloorHundreds
 }

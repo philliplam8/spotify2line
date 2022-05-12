@@ -8,7 +8,7 @@ cloudinary.config({
 });
 
 /**
- * 
+ * Upload file with publicId to Cloudinary storage 
  * @param {string} file Path to local file or URL
  * @param {string} publicId Name in Cloudinary's storage
  * @returns 
@@ -62,6 +62,7 @@ function checkResources() {
     });
 }
 
+// Print the resources available in the console after each use
 checkResources();
 
 module.exports = {
