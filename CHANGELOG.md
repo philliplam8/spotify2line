@@ -3,6 +3,8 @@
 
 ## Unreleased
 
+## 2.1.0 (2022-05-11)
+
 ### New Features :
 - LINE Bubble Message Sender will now display the user's Spotify profile image if they have one
 
