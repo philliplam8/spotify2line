@@ -26,9 +26,9 @@ Currently, Spotify has implemented collaborative playlists, which allow multiple
     ```console
     git clone https://github.com/philliplam8/spotify2line.git
     ```
-2. Use the package manager [npm](https://www.npmjs.com/) to install the following dependencies
+2. Use the package manager [npm](https://www.npmjs.com/) and install the required dependencies
     ```console
-    npm install @line/bot-sdk express cors cookie-parser request fs dotenv cloudinary
+    npm i
     ```
 3. Follow steps in the [Usage](#Usage) section below to host and use the spotify2line app
 
