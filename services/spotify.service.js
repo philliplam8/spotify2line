@@ -79,13 +79,26 @@ function makePromiseForSpotifyUserName(token, userId) {
         json: true
     };
 
+
+
     return new Promise(function (resolve, reject) {
         request.get(userIdOptions, function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                resolve({
-                    userName : body.display_name,
-                    userIcon : body.images[0].url
-                });
+
+                if (body.images[0]) {
+                    resolve({
+                        userName: body.display_name,
+                        userIcon: body.images[0].url
+                    });
+                }
+
+                else {
+                    resolve({
+                        userName: body.display_name,
+                    });
+                }
+
+
             }
             reject(error);
         });
