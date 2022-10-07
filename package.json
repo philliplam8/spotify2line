@@ -7,7 +7,7 @@
     "node": "14.17.1"
   },
   "dependencies": {
-    "@line/bot-sdk": "^7.4.0",
+    "@line/bot-sdk": "^7.5.2",
     "cloudinary": "^1.28.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
