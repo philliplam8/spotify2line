@@ -59,30 +59,15 @@ This project will use the following APIs and free services to run and host the s
 
 #### 1. Environment Variables File
 > ***IMPORTANT:*** *Ensure the .env file is not made available to the public i.e. not uploaded to a public repository (to workaround this, use a .gitignore file). Your tokens and secrets should be kept hidden and treated like a password as they can be misused. If they are compromised, re-issue a new token/secret from the application accordingly.*
-1. Create an environments variable file called `.env` in the root directory of the project
-2. Copy and paste the following into the `.env` file
-    ```.env
-    # LINE
-    CHANNEL_ACCESS_TOKEN=''
-    CHANNEL_SECRET=''
-
-    # SPOTIFY
-    SPOTIFY_CLIENT_ID=''
-    SPOTIFY_CLIENT_SECRET=''
-    PLAYLIST_ID = ''
-
-    # CLOUDINARY
-    CLOUDINARY_CLOUD_NAME=
-    CLOUDINARY_API_KEY=
-    CLOUDINARY_API_SECRET=
-    ```
+1. Create an environments variable file called `.env-placeholder` in the root directory of the project
+2. Rename the file to `.env`
 3. In the following steps, we will be adding several environment variables into this file
 
 #### 2. Create a new Spotify Developer App and Generate Client ID & Client Secret
 1. Log into [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/) with your existing Spotify account
 2. Click *Create An App*
 3. Fill in all required details and create a new Spotify Developer App
-4. Copy the *Client ID* and *Client Secret* from the Dashboard Overview page and paste into the `.env` file
+4. Copy the *Client ID* and *Client Secret* from the Dashboard Overview page and paste into the `.env` file variables `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`, respectively
 
 #### 3. Determine Spotify Playlist ID
 1. Open your desired Spotify Playlist
@@ -90,14 +75,14 @@ This project will use the following APIs and free services to run and host the s
 3. Click `Share > Copy link to playlist`
 4. Paste the share link into any text editor
 5. The share link will appear with the following syntax `https://open.spotify.com/playlist/{playlistId}?si=`
-6. Copy the `playlistId` value and paste it into the `.env` file 
+6. Copy the `playlistId` value and paste it into the `.env` file variable `PLAYLIST_ID`
 
 #### 4. Create a new LINE Channel and Generate Channel Access Token & Channel Secret
 1. Visit the [LINE Developers Messaging API](https://developers.line.biz/en/services/messaging-api/) page 
 2. Click *Start now*
 3. Login with your existing LINE account
 4. Create a new channel
-5. Copy the *Channel Secret* and *Channel Acccess Token* from the Dashboard Overview page and paste into the `.env` file
+5. Copy the *Channel Secret* and *Channel Acccess Token* from the Dashboard Overview page and paste into the `.env` file variables `CHANNEL_SECRET` and `CHANNEL_ACCESS_TOKEN`, respectively
 6. Save the `.env` file
 
 #### 5. Create a new Heroku app and deploy app
